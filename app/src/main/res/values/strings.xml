@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Quishield</string>
+    <string name="message">Hello Test</string>
 </resources>
