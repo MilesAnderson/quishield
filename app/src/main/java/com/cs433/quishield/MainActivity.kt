@@ -5,13 +5,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-
-//My imports
 import android.widget.Button
-import android.widget.Toast
 import android.widget.ImageView
 import android.widget.TextView
-
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.MultiFormatReader
+import com.google.zxing.RGBLuminanceSource
+import com.google.zxing.common.HybridBinarizer
 
 class MainActivity : AppCompatActivity() {
     private val samples = listOf(
@@ -49,7 +51,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         decodeBtn.setOnClickListener {
-            resultText.text = "Decoding sample ${index + 1}..."
+            val text = decodeQrFromDrawable(samples[index])
+            resultText.text = text ?: "No QR code found"
         }
 
         showCurrent()
@@ -58,6 +61,29 @@ class MainActivity : AppCompatActivity() {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+        }
+    }
+    private fun decodeQrFromDrawable(drawableId: Int): String? {
+        val bitmap: Bitmap = BitmapFactory.decodeResource(resources, drawableId)
+
+        val pixels = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(
+            pixels,
+            0,
+            bitmap.width,
+            0,
+            0,
+            bitmap.width,
+            bitmap.height
+        )
+
+        val source = RGBLuminanceSource(bitmap.width, bitmap.height, pixels)
+        val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
+
+        return try {
+            MultiFormatReader().decode(binaryBitmap).text
+        } catch (e: Exception) {
+            null
         }
     }
 }
