@@ -1,5 +1,6 @@
 package com.cs433.quishield
 
+//Android lifecycle + UI imports
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -8,21 +9,42 @@ import androidx.core.view.WindowInsetsCompat
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+
+// Bitmap handling (used to decode QR images)
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+
+// ZXing imports for QR code decoding
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 
+// Kotlin coroutines (used for backend networking)
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/**
+ * Main Activty serves as the main entry point of the app.
+ * Responsibilities:
+ * 1. Decode QR codes using ZXing
+ * 2. Send decoded URLs to the backend for security analysis
+ * 3. Display the backend's response to the user
+ */
 class MainActivity : AppCompatActivity() {
+    /**
+     * List of QR code images stored in res/drawable for testing
+     */
     private val samples = listOf(
         R.drawable.qr_example1,
         R.drawable.qr_example2,
         R.drawable.qr_example3
     )
-
     private var index = 0
+    private val backend = BackendClient("http://10.0.2.2:3000")
+    private lateinit var resultText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,7 +52,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val qrImageView = findViewById<ImageView>(R.id.qrImageView)
-        val resultText = findViewById<TextView>(R.id.resultText)
+        resultText = findViewById(R.id.resultText)
+
         val prevBtn = findViewById<Button>(R.id.prevBtn)
         val nextBtn = findViewById<Button>(R.id.nextBtn)
         val decodeBtn = findViewById<Button>(R.id.decodeBtn)
@@ -50,9 +73,19 @@ class MainActivity : AppCompatActivity() {
             showCurrent()
         }
 
+        /**
+         * Decode Button:
+         * 1. Attempts to decode the QR code from the displayed image
+         * 2. If decoding succeeds, send the result to the backend
+         * 3. Otherwise, notify the user
+         */
         decodeBtn.setOnClickListener {
             val text = decodeQrFromDrawable(samples[index])
-            resultText.text = text ?: "No QR code found"
+            if (text == null){
+                resultText.text = "No QR code found"
+            } else{
+                sendToBackend(text)
+            }
         }
 
         showCurrent()
@@ -63,6 +96,50 @@ class MainActivity : AppCompatActivity() {
             insets
         }
     }
+
+    /**
+     * sendToBackend
+     *
+     * Sends the decoded QR content to the backend server for security analysis.
+     * Performs a basic frontend safety check before making the network request.
+     */
+    private fun sendToBackend(decodeText: String) {
+        val trimmed = decodeText.trim()
+        if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))){
+            resultText.text = "Blocked (unsupported scheme): $trimmed"
+            return
+        }
+
+        resultText.text = "Checking safety..."
+
+        /**
+         * Network rquests are performed on a background thread (IO dispatcher).
+         * UI updates must occur on the main thread.
+         */
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val json = backend.scanUrl(trimmed)
+                withContext(Dispatchers.Main){
+                    resultText.text = "Backed result:\n$json"
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    resultText.text = "Backend error: ${e.message}"
+                }
+            }
+        }
+    }
+
+    /**
+     * decodeQrFromDrawable
+     *
+     * Uses the AXing library to decode a QR code from a drawable resource.
+     * Steps:
+     * 1. Concert drawable into a Bitmap
+     * 2. Extract raw pixel data
+     * 3. Convert pixels into a luminance source
+     * 4. Decode using ZXing's MultiFormatReader
+     */
     private fun decodeQrFromDrawable(drawableId: Int): String? {
         val bitmap: Bitmap = BitmapFactory.decodeResource(resources, drawableId)
 
