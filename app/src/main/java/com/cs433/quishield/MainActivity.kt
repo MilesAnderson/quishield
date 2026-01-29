@@ -37,6 +37,17 @@ class MainActivity : AppCompatActivity() {
     /**
      * List of QR code images stored in res/drawable for testing
      */
+
+    private lateinit var uploadImgButton: Button
+    private var selectedImageUri: Uri? = null
+
+    private val pickImageLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
+
+
     private val samples = listOf(
         R.drawable.qr_example1,
         R.drawable.qr_example2,
@@ -57,6 +68,11 @@ class MainActivity : AppCompatActivity() {
         val prevBtn = findViewById<Button>(R.id.prevBtn)
         val nextBtn = findViewById<Button>(R.id.nextBtn)
         val decodeBtn = findViewById<Button>(R.id.decodeBtn)
+
+        uploadImgButton = findViewById(R.id.upload_img)
+        uploadImgButton.setOnClickListener {
+            pickImageLauncher.launch("image/*")
+        }
 
         fun showCurrent() {
             qrImageView.setImageResource(samples[index])
