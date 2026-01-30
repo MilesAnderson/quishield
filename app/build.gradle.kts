@@ -8,6 +8,10 @@ android {
         version = release(36)
     }
 
+    viewBinding{
+        enabled=true
+    }
+
     defaultConfig {
         applicationId = "com.cs433.quishield"
         minSdk = 24
