@@ -33,6 +33,13 @@
                 android:layout_weight="1"
                 android:text="Prev" />
 
+            <button
+                android:id="@+id/upload_img"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Upload an image" />
+
             <Button
                 android:id="@+id/nextBtn"
                 android:layout_width="0dp"
@@ -48,6 +55,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="Decode" />
+
 
         <TextView
             android:id="@+id/resultText"
