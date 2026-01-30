@@ -9,6 +9,7 @@ import androidx.core.view.WindowInsetsCompat
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import android.net.Uri
 
 // Bitmap handling (used to decode QR images)
 import android.graphics.Bitmap
