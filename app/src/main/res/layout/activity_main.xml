@@ -33,7 +33,7 @@
                 android:layout_weight="1"
                 android:text="Prev" />
 
-            <button
+            <Button
                 android:id="@+id/upload_img"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

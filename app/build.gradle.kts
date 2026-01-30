@@ -9,7 +9,7 @@ android {
     }
 
     viewBinding{
-        enabled=true
+        enable=true
     }
 
     defaultConfig {
