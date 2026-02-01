@@ -26,9 +26,7 @@ app.use(express.json());
 * Example response:
 *   { "ok": true }
 */
-app.get("/health", (req, res) => {
-    res.json({ ok: true});
-});
+app.get("/health", (req, res) => res.json({ok: true}));
 
 /**
 * POST /scan
@@ -52,7 +50,7 @@ app.post("/scan", (req, res) => {
     const { url } = req.body || {};
 
     if (typeof url !== "string" || url.trim().length === 0) {
-        return res.status(400).json({ verdict: "ERROR", reasons: ["Missing url"] });
+        return res.status(400).json({ verdict: "ERROR", reasons: ["Missing url"], scannedUrl: "" });
     }
 
     const u = url.trim();
@@ -60,7 +58,7 @@ app.post("/scan", (req, res) => {
 
     // Allow List
     if (!(lower.startsWith("http://") || lower.startsWith("https://"))) {
-        return res.json({ verdict: "BLOCKED", reasons: ["Unsupported URL scheme"], url: u});
+        return res.json({ verdict: "BLOCKED", reasons: ["Unsupported URL scheme"], scannedUrl: u });
     }
 
     // Known short-link / dynamic QR domains.
@@ -69,18 +67,18 @@ app.post("/scan", (req, res) => {
     // Extract host from the URL
     let host = "";
     try {
-        host = new URL(u).host;
+        host = new URL(u).hostname;
     } catch {
-        return res.json({ verdict: "BLOCKED", reasons: ["Invalid URL format"], url: u});
+        return res.json({ verdict: "BLOCKED", reasons: ["Invalid URL format"], scannedUrl: u });
     }
 
-    const reasons = ["URL is http/https", 'Host: ${host}'];
+    const reasons = ["URL is http/https", `Host: ${host}`];
     let verdict = "SAFE"
 
     // Flag known shorteners/dynamic-QR hosts
     if (suspiciousHosts.includes(host)) {
         verdict = "SUSPICIOUS";
-        reasons.push("Short-link/dynamic QR domain (resolve redirects before trusting");
+        reasons.push("Short-link/dynamic QR domain (resolve redirects before trusting).");
     }
 
     // Return the result to the Android app
@@ -88,4 +86,4 @@ app.post("/scan", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Backend Listening on http://localhost:${PORT}'));
+app.listen(PORT, () => console.log(`Backend Listening on http://localhost:${PORT}`));
