@@ -45,7 +45,9 @@ class MainActivity : AppCompatActivity() {
     private val pickImageLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        selectedImageUri = uri
+        selectedImageUri     = uri
+        findViewById<ImageView>(R.id.qrImageView).setImageURI(uri)
+        findViewById<TextView>(R.id.resultText).text = "Image loaded from Gallery"
     }
 
 
@@ -97,11 +99,16 @@ class MainActivity : AppCompatActivity() {
          * 3. Otherwise, notify the user
          */
         decodeBtn.setOnClickListener {
-            val text = decodeQrFromDrawable(samples[index])
-            if (text == null){
-                resultText.text = "No QR code found"
-            } else{
-                sendToBackend(text)
+            val currentUri = selectedImageUri
+            if (currentUri != null) {
+                val text = decodeQrFromUri(currentUri)
+                if (text == null) {
+                    resultText.text = "No QR code found in selected image"
+                    } else {
+                    sendToBackend(text)
+                    }
+                } else {
+                resultText.text = "Please upload an image first"
             }
         }
 
@@ -157,9 +164,8 @@ class MainActivity : AppCompatActivity() {
      * 3. Convert pixels into a luminance source
      * 4. Decode using ZXing's MultiFormatReader
      */
-    private fun decodeQrFromDrawable(drawableId: Int): String? {
-        val bitmap: Bitmap = BitmapFactory.decodeResource(resources, drawableId)
-
+    private fun decodeQrFromUri(uri: Uri): String? {
+        val bitmap: Bitmap = decodeUriToBitmap(uri) ?: return null
         val pixels = IntArray(bitmap.width * bitmap.height)
         bitmap.getPixels(
             pixels,
@@ -177,6 +183,20 @@ class MainActivity : AppCompatActivity() {
         return try {
             MultiFormatReader().decode(binaryBitmap).text
         } catch (e: Exception) {
+            null
+        }
+    }
+
+/*  below function converts image uri to bitmap
+First converts uri through input stream, then decodes the stream in to the bitmap. Content resolver method used from android developers guide*/
+    private fun decodeUriToBitmap(uri: Uri): Bitmap? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+            bitmap
+        } catch (e: Exception) {
+            e.printStackTrace()
             null
         }
     }
