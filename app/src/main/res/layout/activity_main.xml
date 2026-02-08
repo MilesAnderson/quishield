@@ -24,10 +24,12 @@
 
             <ImageView
                 android:id="@+id/logoImage"
-                android:layout_width="wrap_content"
-                android:layout_height="72dp"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="20dp"
+                android:layout_marginLeft="5dp"
+                android:layout_marginRight="5dp"
+                android:layout_marginBottom="1dp"
                 android:adjustViewBounds="true"
                 android:contentDescription="Quishield logo"
                 android:src="@drawable/quishield_horizontal_logo" />
@@ -45,7 +47,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:layout_margin="12dp">
 
                 <Button
                     android:id="@+id/prevBtn"
@@ -56,7 +58,7 @@
                     app:backgroundTint="#0f3054" />
 
                 <Space
-                    android:layout_width="8dp"
+                    android:layout_width="20dp"
                     android:layout_height="wrap_content" />
 
 
@@ -78,7 +80,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Scan"
-                android:layout_marginBottom="12dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="50dp"
+                android:layout_marginLeft="50dp"
                 app:backgroundTint="#3b8dcb"/>
 
             <Button
@@ -86,15 +90,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Upload"
-                app:backgroundTint="#0f3054" />
+                android:layout_marginRight="50dp"
+                android:layout_marginLeft="50dp"
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="#3b8dcb" />
 
             <Button
                 android:id="@+id/decodeBtn"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Decode"
+                android:layout_width="181dp"
+                android:layout_height="69dp"
+                android:layout_marginTop="12dp"
                 android:layout_marginBottom="12dp"
-                app:backgroundTint="#0f3054"/>
+                android:text="DECODE"
+                android:textSize="25dp"
+                android:layout_gravity="center_horizontal"
+                app:backgroundTint="#0f3054" />
 
             <TextView
                 android:id="@+id/resultText"
