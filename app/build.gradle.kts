@@ -51,4 +51,5 @@ dependencies {
     implementation("com.google.zxing:core:3.5.4")
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }

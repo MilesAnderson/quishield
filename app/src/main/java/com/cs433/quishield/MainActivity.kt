@@ -10,6 +10,8 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.net.Uri
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+
 
 // Bitmap handling (used to decode QR images)
 import android.graphics.Bitmap
@@ -27,14 +29,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+
 /**
- * Main Activty serves as the main entry point of the app.
+ * Main Activity serves as the main entry point of the app.
  * Responsibilities:
  * 1. Decode QR codes using ZXing
  * 2. Send decoded URLs to the backend for security analysis
  * 3. Display the backend's response to the user
  */
 class MainActivity : AppCompatActivity() {
+
     /**
      * List of QR code images stored in res/drawable for testing
      */
@@ -61,6 +65,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var resultText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // splash screen
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)

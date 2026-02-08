@@ -6,4 +6,10 @@
     </style>
 
     <style name="Theme.Quishield" parent="Base.Theme.Quishield" />
+
+    <style name="Theme.Quishield.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/zoomed_out_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Quishield</item>
+    </style>
 </resources>
