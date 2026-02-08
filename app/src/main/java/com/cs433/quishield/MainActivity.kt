@@ -54,6 +54,23 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.resultText).text = "Image loaded from Gallery"
     }
 
+    private val cameraLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            findViewById<ImageView>(R.id.qrImageView).setImageBitmap(bitmap)
+            resultText.text = "Image captured"
+            // returns bitmap from camera
+
+            val decoded = decodeQrFromBitmap(bitmap)
+            if (decoded != null) {
+                sendToBackend(decoded)
+            } else {
+                resultText.text = "No QR code found"
+            }
+        }
+    }
+
 
     private val samples = listOf(
         R.drawable.qr_example1,
@@ -78,9 +95,11 @@ class MainActivity : AppCompatActivity() {
 
         val prevBtn = findViewById<Button>(R.id.prevBtn)
         val nextBtn = findViewById<Button>(R.id.nextBtn)
+        val uploadImgButton = findViewById<Button>(R.id.upload_img)
         val decodeBtn = findViewById<Button>(R.id.decodeBtn)
+        val scanBtn = findViewById<Button>(R.id.scanBtn)
 
-        uploadImgButton = findViewById(R.id.upload_img)
+
         uploadImgButton.setOnClickListener {
             pickImageLauncher.launch("image/*")
         }
@@ -120,12 +139,36 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // scan button: launches camera if applicable
+        scanBtn.setOnClickListener {
+            if (hasCameraPermission()) {
+                cameraLauncher.launch(null)
+            } else {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.CAMERA),
+                    100
+                )
+            }
+        }
+
         showCurrent()
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100 && grantResults.isNotEmpty()
+            && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            cameraLauncher.launch(null)
         }
     }
 
@@ -207,5 +250,25 @@ First converts uri through input stream, then decodes the stream in to the bitma
             e.printStackTrace()
             null
         }
+    }
+
+    private fun decodeQrFromBitmap(bitmap: Bitmap): String? {
+        val pixels = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+
+        val source = RGBLuminanceSource(bitmap.width, bitmap.height, pixels)
+        val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
+
+        return try {
+            MultiFormatReader().decode(binaryBitmap).text
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // check if device has camera hardware
+    private fun hasCameraPermission(): Boolean {
+        return checkSelfPermission(android.Manifest.permission.CAMERA) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 }
