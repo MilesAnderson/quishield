@@ -1,18 +1,22 @@
 package com.cs433.quishield
 
-import okhttp3.MediaType.Companion.toMediaType
+//From Melanies push import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Json
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class VirusTotalClient(private val apiKey: String) {
 
     private val client = OkHttpClient()
-    private val moshi = Moshi.Builder().build()
+    private val moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
 
     data class ScanResponse(
         @Json(name = "data") val data: Data
@@ -27,7 +31,10 @@ class VirusTotalClient(private val apiKey: String) {
             @Json(name = "attributes") val attributes: Attributes
         ) {
             data class Attributes(
-                @Json(name = "last_analysis_stats") val lastAnalysisStats: Map<String, Int>
+                @Json(name = "status") val status: String? = null,
+
+                // /analyses/{id} uses "stats", not "last_analysis_stats"
+                @Json(name = "stats") val lastAnalysisStats: Map<String, Int> = emptyMap()
             )
         }
     }
@@ -35,10 +42,13 @@ class VirusTotalClient(private val apiKey: String) {
     suspend fun scanUrl(url: String): AnalysisResponse {
         return withContext(Dispatchers.IO) {
             // 1️⃣ Submit URL for scanning
-            val json = """{"url":"$url"}"""
+            val formBody = FormBody.Builder()
+                .add("url", url)
+                .build()
+
             val request = Request.Builder()
                 .url("https://www.virustotal.com/api/v3/urls")
-                .post(json.toRequestBody("application/json".toMediaType()))
+                .post(formBody)
                 .addHeader("x-apikey", apiKey)
                 .build()
 
