@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     private val backend = BackendClient("http://10.0.2.2:3000")
 
     // virus total
-    private val virusTotal = VirusTotalClient("ea1850218e6d748bfdf87f57ea28b485444351c5071fb25bc739bedf6d8d6695")
+    private val virusTotal = VirusTotalClient("api key")
 
     // upload image
     private val pickImageLauncher = registerForActivityResult(
