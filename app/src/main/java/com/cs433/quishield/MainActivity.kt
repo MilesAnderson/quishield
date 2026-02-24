@@ -1,6 +1,6 @@
 package com.cs433.quishield
 
-//Android lifecycle + UI imports
+/Android lifecycle + UI imports
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -30,6 +30,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+// CameraX (imports for live scanning)
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 
 /**
  * Main Activity serves as the main entry point of the app.
@@ -74,6 +81,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // scan image
+    /*
     private val cameraLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
@@ -84,7 +92,92 @@ class MainActivity : AppCompatActivity() {
             currentImageUri = null
         }
     }
+    */
 
+    /*image scanner adapted from google's official cameraX sample and ZXing library, see:
+    https://developer.android.com/media/camera/camerax/analyze
+    https://github.com/zxing/zxing*/
+
+    private inner class QrAnalyzer : ImageAnalysis.Analyzer {
+        private var qrDetected = false
+        override fun analyze(image: ImageProxy) {
+            if (qrDetected) {
+                image.close()
+                return
+            }
+            val buffer = image.planes[0].buffer
+            val bytes = ByteArray(buffer.remaining())
+            buffer.get(bytes)
+            val source =
+                com.google.zxing.PlanarYUVLuminanceSource(
+                    bytes,
+                    image.width,
+                    image.height,
+                    0,
+                    0,
+                    image.width,
+                    image.height,
+                    false
+                )
+            val binaryBitmap =
+                BinaryBitmap(HybridBinarizer(source))
+            try {
+                val result =
+                    MultiFormatReader().decode(binaryBitmap)
+                qrDetected = true
+                runOnUiThread {
+                    resultText.text = "QR detected"
+                    sendToVirusTotal(result.text)
+                    val cameraProviderFuture = ProcessCameraProvider.getInstance(this@MainActivity)
+                    cameraProviderFuture.addListener({
+                        val cameraProvider = cameraProviderFuture.get()
+                        cameraProvider.unbindAll()
+                    }, mainExecutor)
+                }
+            } catch (_: Exception) {
+                // no QR found
+            }
+            image.close()
+        }
+    }
+
+    //camera starter also adapted from google developers guide:
+    private fun startCamera() {
+        val previewView =
+            findViewById<PreviewView>(R.id.previewView)
+        val cameraProviderFuture =
+            ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            val cameraProvider =
+                cameraProviderFuture.get()
+            val preview =
+                Preview.Builder().build()
+            preview.setSurfaceProvider(
+                previewView.surfaceProvider
+            )
+            val imageAnalyzer =
+                ImageAnalysis.Builder()
+                    .setBackpressureStrategy(
+                        ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
+                    )
+                    .build()
+                    .also {
+                        it.setAnalyzer(
+                            mainExecutor,
+                            QrAnalyzer()
+                        )
+                    }
+            val cameraSelector =
+                CameraSelector.DEFAULT_BACK_CAMERA
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(
+                this,
+                cameraSelector,
+                preview,
+                imageAnalyzer
+            )
+        }, mainExecutor)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -133,9 +226,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         // scan button: launches camera if applicable
+        /*
         scanBtn.setOnClickListener {
             if (hasCameraPermission()) {
                 cameraLauncher.launch(null)
+            } else {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.CAMERA),
+                    100
+                )
+            }
+        }
+        */
+
+        //updated version of scan button using cameraX:
+        scanBtn.setOnClickListener {
+            if (hasCameraPermission()) {
+                startCamera()
             } else {
                 requestPermissions(
                     arrayOf(android.Manifest.permission.CAMERA),
@@ -197,7 +304,7 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 100 && grantResults.isNotEmpty()
             && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            cameraLauncher.launch(null)
+            startCamera()
         }
     }
 
