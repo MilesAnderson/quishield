@@ -14,7 +14,6 @@ import android.net.Uri
 import android.view.View
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
-
 // Bitmap handling (used to decode QR images)
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -67,7 +66,7 @@ class MainActivity : AppCompatActivity() {
     private val backend = BackendClient("http://10.0.2.2:3000")
 
     // virus total
-    private val virusTotal = VirusTotalClient("api key")
+    private val virusTotal = VirusTotalClient(BuildConfig.VT_API_KEY)
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()

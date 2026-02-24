@@ -20,6 +20,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val vtApiKey: String = project.findProperty("VT_API_KEY") as String? ?: ""
+
+        buildConfigField(
+            "String",
+            "VT_API_KEY",
+            "\"$vtApiKey\""
+        )
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
