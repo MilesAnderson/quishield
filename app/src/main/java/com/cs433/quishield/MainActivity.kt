@@ -1,16 +1,17 @@
 package com.cs433.quishield
-
-/Android lifecycle + UI imports
+//Android lifecycle + UI imports
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.content.ContextCompat
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.net.Uri
+import android.view.View
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 
@@ -68,7 +69,6 @@ class MainActivity : AppCompatActivity() {
     // virus total
     private val virusTotal = VirusTotalClient("api key")
 
-    // upload image
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -127,15 +127,16 @@ class MainActivity : AppCompatActivity() {
                 qrDetected = true
                 runOnUiThread {
                     resultText.text = "QR detected"
+                    findViewById<PreviewView>(R.id.previewView).visibility = View.GONE
+                    findViewById<Button>(R.id.closeBtn).visibility = View.GONE
                     sendToVirusTotal(result.text)
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(this@MainActivity)
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
                         cameraProvider.unbindAll()
-                    }, mainExecutor)
+                    }, ContextCompat.getMainExecutor(this@MainActivity))
                 }
             } catch (_: Exception) {
-                // no QR found
             }
             image.close()
         }
@@ -163,7 +164,7 @@ class MainActivity : AppCompatActivity() {
                     .build()
                     .also {
                         it.setAnalyzer(
-                            mainExecutor,
+                            ContextCompat.getMainExecutor(this),
                             QrAnalyzer()
                         )
                     }
@@ -176,7 +177,7 @@ class MainActivity : AppCompatActivity() {
                 preview,
                 imageAnalyzer
             )
-        }, mainExecutor)
+        }, ContextCompat.getMainExecutor(this))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -198,6 +199,7 @@ class MainActivity : AppCompatActivity() {
         val uploadImgButton = findViewById<Button>(R.id.upload_img)
         val decodeBtn = findViewById<Button>(R.id.decodeBtn)
         val scanBtn = findViewById<Button>(R.id.scanBtn)
+        val closeBtn = findViewById<Button>(R.id.closeBtn)
 
 
         // display current image object
@@ -241,6 +243,8 @@ class MainActivity : AppCompatActivity() {
 
         //updated version of scan button using cameraX:
         scanBtn.setOnClickListener {
+            findViewById<PreviewView>(R.id.previewView).visibility = View.VISIBLE
+            closeBtn.visibility = View.VISIBLE
             if (hasCameraPermission()) {
                 startCamera()
             } else {
@@ -249,6 +253,17 @@ class MainActivity : AppCompatActivity() {
                     100
                 )
             }
+        }
+
+        // close camera button
+        closeBtn.setOnClickListener {
+            findViewById<PreviewView>(R.id.previewView).visibility = View.GONE
+            closeBtn.visibility = View.GONE
+            val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+            cameraProviderFuture.addListener({
+                val cameraProvider = cameraProviderFuture.get()
+                cameraProvider.unbindAll()
+            }, ContextCompat.getMainExecutor(this))
         }
 
         // updated version of decode that works for scan or upload & uses virustotal
