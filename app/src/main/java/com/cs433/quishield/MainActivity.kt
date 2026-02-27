@@ -433,7 +433,7 @@ First converts uri through input stream, then decodes the stream in to the bitma
     private fun sendToVirusTotal(url: String) {
         val trimmed = url.trim()
         if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
-            resultText.text = "Blocked (unsupported scheme): $trimmed"
+            resultText.text = "Blocked: only http/https links are supported.\n\n$trimmed"
             return
         }
 
@@ -441,13 +441,30 @@ First converts uri through input stream, then decodes the stream in to the bitma
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val analysis = virusTotal.scanUrl(trimmed)
-                val stats = analysis.data.attributes.lastAnalysisStats
-                withContext(Dispatchers.Main) {
-                    resultText.text = "VirusTotal analysis:\n" +
-                            "Malicious: ${stats["malicious"] ?: 0}, " +
-                            "Suspicious: ${stats["suspicious"] ?: 0}, " +
-                            "Harmless: ${stats["harmless"] ?: 0}"
+                val stats = virusTotal.scanUrlStats(trimmed)
+
+                val malicious = stats["malicious"] ?: 0
+                val suspicious = stats["suspicious"] ?: 0
+                val harmless = stats["harmless"] ?: 0
+                val undetected = stats["undetected"] ?: 0
+
+                val verdict = when {
+                    malicious > 0 -> "\uD83D\uDEAB Dangerous"
+                    suspicious > 0 -> "⚠\uFE0F Suspicious"
+                    else -> "✅ No detections"
+                }
+
+                val summary =
+                    "$verdict\n\n" +
+                    "Results:\n" +
+                    "* Malicious: $malicious\n" +
+                    "* Sucpicious: $suspicious\n" +
+                    "* Harmless: $harmless\n" +
+                    "* Undetected: $undetected" +
+                    "Scanned URL:\n$trimmed"
+
+                withContext(Dispatchers.Main){
+                    resultText.text = summary
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
