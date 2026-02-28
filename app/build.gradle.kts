@@ -1,3 +1,6 @@
+// used to read API key from local.properties
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -12,6 +15,10 @@ android {
         enable=true
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.cs433.quishield"
         minSdk = 24
@@ -21,7 +28,15 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val vtApiKey: String = project.findProperty("VT_API_KEY") as String? ?: ""
+//        val vtApiKey: String = project.findProperty("VT_API_KEY") as String? ?: ""
+
+        // reads API key from local.properties (not pushed to git)
+        val properties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            properties.load(localPropertiesFile.inputStream())
+        }
+        val vtApiKey = properties.getProperty("VT_API_KEY", "")
 
         buildConfigField(
             "String",
