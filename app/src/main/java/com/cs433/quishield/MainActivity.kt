@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.net.Uri
 import android.view.View
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import android.util.Log
 
 // Bitmap handling (used to decode QR images)
 import android.graphics.Bitmap
@@ -128,7 +129,13 @@ class MainActivity : AppCompatActivity() {
                     resultText.text = "QR detected"
                     findViewById<PreviewView>(R.id.previewView).visibility = View.GONE
                     findViewById<Button>(R.id.closeBtn).visibility = View.GONE
-                    sendToVirusTotal(result.text)
+                    // convert text to url before sending to VT
+                    val url = extractUrl(result.text)
+                    if (url != null) {
+                        sendToVirusTotal(url)
+                    } else {
+                        resultText.text = "No valid URL found in QR"
+                    }
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(this@MainActivity)
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
@@ -276,7 +283,12 @@ class MainActivity : AppCompatActivity() {
             if (decoded == null) {
                 resultText.text = "No QR code found"
             } else {
-                sendToVirusTotal(decoded)
+                val url = extractUrl(decoded)
+                if (url != null) {
+                    sendToVirusTotal(url)
+                } else {
+                    resultText.text = "No valid URL found"
+                }
             }
         }
 
@@ -428,6 +440,14 @@ First converts uri through input stream, then decodes the stream in to the bitma
         return checkSelfPermission(android.Manifest.permission.CAMERA) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
     }
+
+
+    // convert QR text into URL
+    private fun extractUrl(raw: String): String? {
+        val regex = Regex("""https?://[^\s]+""")
+        return regex.find(raw)?.value
+    }
+
 
     // send decoded link to virus total
     private fun sendToVirusTotal(url: String) {
