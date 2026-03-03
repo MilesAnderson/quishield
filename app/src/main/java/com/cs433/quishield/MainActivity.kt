@@ -482,9 +482,9 @@ First converts uri through input stream, then decodes the stream in to the bitma
                     "* Harmless: $harmless\n" +
                     "* Undetected: $undetected" +
                     "Scanned URL:\n$trimmed"
-
                 withContext(Dispatchers.Main){
-                    resultText.text = summary
+                    val dialog = ScanResultDialogFragment.newInstance(trimmed, summary)
+                    dialog.show(supportFragmentManager, "ScanResult")
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
