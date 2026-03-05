@@ -200,8 +200,6 @@ class MainActivity : AppCompatActivity() {
         uploadImgButton = findViewById(R.id.upload_img)
 
         // buttons
-        val prevBtn = findViewById<Button>(R.id.prevBtn)
-        val nextBtn = findViewById<Button>(R.id.nextBtn)
         val uploadImgButton = findViewById<Button>(R.id.upload_img)
         val decodeBtn = findViewById<Button>(R.id.decodeBtn)
         val scanBtn = findViewById<Button>(R.id.scanBtn)
@@ -216,36 +214,10 @@ class MainActivity : AppCompatActivity() {
             currentImageUri = null
         }
 
-        // prev
-        prevBtn.setOnClickListener {
-            index = (index - 1 + samples.size) % samples.size
-            showCurrent()
-        }
-
-        // next
-        nextBtn.setOnClickListener {
-            index = (index + 1) % samples.size
-            showCurrent()
-        }
-
         // upload button: launches photo gallery
         uploadImgButton.setOnClickListener {
             pickImageLauncher.launch("image/*")
         }
-
-        // scan button: launches camera if applicable
-        /*
-        scanBtn.setOnClickListener {
-            if (hasCameraPermission()) {
-                cameraLauncher.launch(null)
-            } else {
-                requestPermissions(
-                    arrayOf(android.Manifest.permission.CAMERA),
-                    100
-                )
-            }
-        }
-        */
 
         //updated version of scan button using cameraX:
         scanBtn.setOnClickListener {
@@ -291,26 +263,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
-        /**
-         * Decode Button:
-         * 1. Attempts to decode the QR code from the displayed image
-         * 2. If decoding succeeds, send the result to the backend
-         * 3. Otherwise, notify the user
-         */
-//        decodeBtn.setOnClickListener {
-//            val currentUri = selectedImageUri
-//            if (currentUri != null) {
-//                val text = decodeQrFromUri(currentUri)
-//                if (text == null) {
-//                    resultText.text = "No QR code found in selected image"
-//                    } else {
-//                    sendToBackend(text)
-//                    }
-//                } else {
-//                resultText.text = "Please upload an image first"
-//            }
-//        }
 
 
         showCurrent()

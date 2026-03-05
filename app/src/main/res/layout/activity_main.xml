@@ -68,37 +68,7 @@
                 android:src="@drawable/qr_example1"
                 android:contentDescription="QR code preview" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_margin="12dp">
 
-                <Button
-                    android:id="@+id/prevBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Prev"
-                    app:backgroundTint="#0f3054" />
-
-                <Space
-                    android:layout_width="20dp"
-                    android:layout_height="wrap_content" />
-
-
-                <Space
-                    android:layout_width="8dp"
-                    android:layout_height="wrap_content" />
-
-                <Button
-                    android:id="@+id/nextBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Next"
-                    app:backgroundTint="#0f3054"/>
-            </LinearLayout>
 
             <Button
                 android:id="@+id/scanBtn"
