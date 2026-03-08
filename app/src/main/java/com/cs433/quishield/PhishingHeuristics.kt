@@ -75,9 +75,8 @@ object PhishingHeuristics {
         val matchedPathWords = suspiciousPathWords.filter { word ->
             path.contains(word) || full.contains(word)
         }
-        if (matchedPathWords.isNotEmpty()) {
-            score += 10
-            reasons.add("The link uses account or verification language")
+        if (matchedPathWords.size >= 2) {
+            score += 5
         }
 
         // 4) Brand mention checks

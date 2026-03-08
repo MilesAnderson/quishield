@@ -26,20 +26,20 @@ object RiskAssessment {
         var score = 0
         val reasons = mutableListOf<String>()
 
-        // 1) Strongest signal: vendor detections
+        // 1) Vendor detections: strongest signal
         if (malicious > 0) {
-            score += malicious * 35
+            score += 45 + (malicious - 1) * 15
             reasons.add("$malicious security vendor(s) flagged this URL as malicious")
         }
 
         if (suspicious > 0) {
-            score += suspicious * 18
+            score += suspicious * 20
             reasons.add("$suspicious vendor(s) marked this URL as suspicious")
         }
 
-        // 2) Reputation signal
+        // 2) Reputation
         if (reputation < 0) {
-            score += (-reputation / 10).coerceAtMost(20)
+            score += (-reputation / 8).coerceAtMost(25)
             reasons.add("The domain has a negative reputation score")
         } else if (reputation >= 100) {
             score -= 20
@@ -47,28 +47,37 @@ object RiskAssessment {
             score -= 10
         }
 
-        // 3) Community votes are weak evidence only
-        if (maliciousVotes > harmlessVotes && maliciousVotes >= 10) {
-            score += 10
-            reasons.add("Community reports show some concern about this URL")
-        } else if (harmlessVotes > maliciousVotes && harmlessVotes >= 10) {
+        // 3) Community votes: only matter when reputation is not strongly positive
+        if (reputation < 50) {
+            if (maliciousVotes > harmlessVotes && maliciousVotes >= 5) {
+                score += 12
+                reasons.add("Community reports show concern about this URL")
+            } else if (maliciousVotes >= 10) {
+                score += 8
+                reasons.add("Community reports show concern about this URL")
+            }
+        }
+
+        if (harmlessVotes > maliciousVotes && harmlessVotes >= 10) {
             score -= 5
         }
 
-        // 4) HTTP response behavior
+        // 4) HTTP response
         if (httpCode == 0 || httpCode >= 400) {
             score += 10
             reasons.add("The website returned an unusual response")
         }
 
-        // 5) Weak confidence if very few harmless engines and many undetected
+        // 5) Low-confidence / sparse benign support
         if (harmless < 5 && undetected > 20) {
-            score += 5
+            score += 10
+            reasons.add("Very few engines marked this URL harmless")
+        } else if (harmless < 10 && undetected > harmless) {
+            score += 6
         }
 
         // 6) Benign category hints
         val categories = attr.categories.values.joinToString(" ").lowercase()
-
         if (
             categories.contains("education") ||
             categories.contains("reference") ||
@@ -85,10 +94,8 @@ object RiskAssessment {
         score += phishing.score
         reasons.addAll(phishing.reasons)
 
-        // Clamp final score
         score = score.coerceIn(0, 100)
 
-        // 8) Human-readable explanations when nothing bad was found
         if (reasons.isEmpty()) {
             reasons.add("No security vendors flagged this URL")
         }
@@ -101,10 +108,9 @@ object RiskAssessment {
             reasons.add("The site responded normally")
         }
 
-        // 9) Final verdict
         val level = when {
-            score >= 60 -> "🚫 Dangerous"
-            score >= 25 -> "⚠️ Suspicious"
+            score >= 55 -> "🚫 Dangerous"
+            score >= 20 -> "⚠️ Suspicious"
             else -> "✅ Low Risk"
         }
 
