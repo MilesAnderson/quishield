@@ -416,26 +416,12 @@ First converts uri through input stream, then decodes the stream in to the bitma
                 val report = virusTotal.scanUrlReport(trimmed)
                 Log.d("VT_DEBUG", virusTotal.formatReportForDebug(report))
 
-                val stats = report.data.attributes.lastAnalysisStats
-                val malicious = stats["malicious"] ?: 0
-                val suspicious = stats["suspicious"] ?: 0
-                val harmless = stats["harmless"] ?: 0
-                val undetected = stats["undetected"] ?: 0
-
-                val verdict = when {
-                    malicious > 0 -> "\uD83D\uDEAB Dangerous"
-                    suspicious > 0 -> "⚠️ Suspicious"
-                    else -> "✅ No detections"
-                }
+                val assessment = RiskAssessment.assess(report, trimmed)
 
                 val summary =
-                    "$verdict\n\n" +
-                            "Results:\n" +
-                            "* Malicious: $malicious\n" +
-                            "* Suspicious: $suspicious\n" +
-                            "* Harmless: $harmless\n" +
-                            "* Undetected: $undetected\n" +
-                            "Scanned URL:\n$trimmed"
+                    "${assessment.level}\n\n" +
+                            assessment.reasons.joinToString("\n") { "• $it" } +
+                            "\n\nScanned URL:\n$trimmed"
 
                 withContext(Dispatchers.Main) {
                     val dialog = ScanResultDialogFragment.newInstance(trimmed, summary)
