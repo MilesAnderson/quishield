@@ -77,7 +77,36 @@ class VirusTotalClient(private val apiKey: String) {
         }
     }
 
+    private fun getUrlReport(url: String): UrlReportResponse? {
+        val urlId = toUrlId(url)
+
+        val req = Request.Builder()
+            .url("https://www.virustotal.com/api/v3/urls/$urlId")
+            .get()
+            .addHeader("x-apikey", apiKey)
+            .build()
+
+        client.newCall(req).execute().use { resp ->
+            if (resp.code == 404) return null
+            if (resp.code == 429) throw Exception("Rate limited by VirusTotal (429). Try again in a minute.")
+            if (!resp.isSuccessful) throw Exception("URL report failed: ${resp.code}")
+
+            val json = resp.body?.string() ?: throw Exception("Empty url report response")
+            return moshi.adapter(UrlReportResponse::class.java).fromJson(json)
+                ?: throw Exception("Failed parsing url report")
+        }
+    }
+
     suspend fun scanUrlStats(url: String): Map<String, Int> = withContext(Dispatchers.IO) {
+        val cachedReport = getUrlReport(url)
+        val cachedStats = cachedReport?.data?.attributes?.lastAnalysisStats ?: emptyMap()
+
+        // If VT already has analysis data, return it immediately
+        if (cachedStats.isNotEmpty()) {
+            return@withContext cachedStats
+        }
+
+        // Otherwise submit and poll for a fresh analysis
         val analysisId = submitUrl(url)
         val analysis = pollUntilCompleted(analysisId)
         analysis.data.attributes.stats
@@ -131,9 +160,8 @@ class VirusTotalClient(private val apiKey: String) {
         val analysisAdapter = moshi.adapter(AnalysisResponse::class.java)
 
         var tries = 0
-        var maxTries = 10
-        var pollDelayMs = 7000L
-        var rateLimitBackoffMs = 15000L
+        val maxTries = 6
+        var delayMs = 1000L
 
         while (tries < maxTries) {
             val aReq = Request.Builder()
@@ -142,26 +170,29 @@ class VirusTotalClient(private val apiKey: String) {
                 .addHeader("x-apikey", apiKey)
                 .build()
 
-            val aResp = client.newCall(aReq).execute()
+            client.newCall(aReq).execute().use { aResp ->
+                if (aResp.code == 429) {
+                    delay(4000L)
+                    tries++
+                    continue
+                }
 
-            if(aResp.code == 429) {
-                tries ++
-                delay(rateLimitBackoffMs)
-                continue
+                if (!aResp.isSuccessful) {
+                    throw Exception("Analysis failed: ${aResp.code}")
+                }
+
+                val aJson = aResp.body?.string() ?: throw Exception("Empty analysis response")
+                val analysis = analysisAdapter.fromJson(aJson)
+                    ?: throw Exception("Failed parsing analysis")
+
+                if (analysis.data.attributes.status == "completed") {
+                    return analysis
+                }
             }
 
-            if(!aResp.isSuccessful) {
-                throw Exception("Analysis failed: ${aResp.code}")
-            }
-
-            val aJson = aResp.body?.string() ?: throw Exception("Empty analysis response")
-            val analysis = analysisAdapter.fromJson(aJson) ?: throw Exception("Failed parsing analysis")
-
-            val status = analysis.data.attributes.status
-            if (status == "completed") return analysis
-
-            tries ++
-            delay(pollDelayMs)
+            tries++
+            delay(delayMs)
+            delayMs = minOf(delayMs + 1000L, 3000L) // 1s, 2s, 3s, 3s...
         }
 
         throw Exception("VirusTotal is busy (free tier). Try again in a minute.")
