@@ -22,7 +22,3 @@ quishield_backend/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-evaluation/data/*
-!evaluation/data/sample_urls.csv
-evaluation/results/
