@@ -205,4 +205,40 @@ class VirusTotalClient(private val apiKey: String) {
             Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
         )
     }
+
+    fun formatReportForDebug(report: UrlReportResponse): String {
+        val attr = report.data.attributes
+
+        val stats = attr.lastAnalysisStats
+        val categories = if (attr.categories.isEmpty()) {
+            "None"
+        } else {
+            attr.categories.entries.joinToString("\n") { "  - ${it.key}: ${it.value}" }
+        }
+
+        return buildString {
+            appendLine("=== VirusTotal Full URL Report ===")
+            appendLine("last_final_url: ${attr.lastFinal_Url ?: "null"}")
+            appendLine("last_http_response_code: ${attr.lastHttpResponseCode ?: "null"}")
+            appendLine("reputation: ${attr.reputation ?: "null"}")
+            appendLine("")
+
+            appendLine("last_analysis_stats:")
+            appendLine("  harmless: ${stats["harmless"] ?: 0}")
+            appendLine("  malicious: ${stats["malicious"] ?: 0}")
+            appendLine("  suspicious: ${stats["suspicious"] ?: 0}")
+            appendLine("  undetected: ${stats["undetected"] ?: 0}")
+            appendLine("  timeout: ${stats["timeout"] ?: 0}")
+            appendLine("")
+
+            appendLine("total_votes:")
+            appendLine("  harmless: ${attr.totalVotes?.harmless ?: 0}")
+            appendLine("  malicious: ${attr.totalVotes?.malicious ?: 0}")
+            appendLine("")
+
+            appendLine("categories:")
+            appendLine(categories)
+            appendLine("==================================")
+        }
+    }
 }

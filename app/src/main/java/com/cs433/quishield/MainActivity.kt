@@ -413,8 +413,10 @@ First converts uri through input stream, then decodes the stream in to the bitma
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val stats = virusTotal.scanUrlStats(trimmed)
+                val report = virusTotal.scanUrlReport(trimmed)
+                Log.d("VT_DEBUG", virusTotal.formatReportForDebug(report))
 
+                val stats = report.data.attributes.lastAnalysisStats
                 val malicious = stats["malicious"] ?: 0
                 val suspicious = stats["suspicious"] ?: 0
                 val harmless = stats["harmless"] ?: 0
@@ -422,19 +424,20 @@ First converts uri through input stream, then decodes the stream in to the bitma
 
                 val verdict = when {
                     malicious > 0 -> "\uD83D\uDEAB Dangerous"
-                    suspicious > 0 -> "⚠\uFE0F Suspicious"
+                    suspicious > 0 -> "⚠️ Suspicious"
                     else -> "✅ No detections"
                 }
 
                 val summary =
                     "$verdict\n\n" +
-                    "Results:\n" +
-                    "* Malicious: $malicious\n" +
-                    "* Sucpicious: $suspicious\n" +
-                    "* Harmless: $harmless\n" +
-                    "* Undetected: $undetected\n" +
-                    "Scanned URL:\n$trimmed"
-                withContext(Dispatchers.Main){
+                            "Results:\n" +
+                            "* Malicious: $malicious\n" +
+                            "* Suspicious: $suspicious\n" +
+                            "* Harmless: $harmless\n" +
+                            "* Undetected: $undetected\n" +
+                            "Scanned URL:\n$trimmed"
+
+                withContext(Dispatchers.Main) {
                     val dialog = ScanResultDialogFragment.newInstance(trimmed, summary)
                     dialog.show(supportFragmentManager, "ScanResult")
                 }
