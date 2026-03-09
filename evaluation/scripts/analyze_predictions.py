@@ -1,23 +1,92 @@
-import csv
-from pathlib import Path
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-PREDICTIONS_FILE = Path("../results/predictions.csv")
+# Load predictions
+df = pd.read_csv("../results/predictions.csv")
 
-with PREDICTIONS_FILE.open(newline="", encoding="utf-8") as f:
-    reader = csv.DictReader(f)
+# Keep only successful analyses
+df = df[df["status"] == "ok"]
 
-    false_positives = [
-        row for row in reader
-        if row["status"].strip().lower() == "ok"
-           and row["true_label"].strip().lower() == "benign"
-           and row["predicted_label"].strip().lower() == "malicious"
-    ]
+# -----------------------------
+# Compute confusion matrix values
+# -----------------------------
 
-print(f"False positives found: {len(false_positives)}\n")
+tp = ((df.true_label == "malicious") & (df.predicted_label == "malicious")).sum()
+tn = ((df.true_label == "benign") & (df.predicted_label == "benign")).sum()
+fp = ((df.true_label == "benign") & (df.predicted_label == "malicious")).sum()
+fn = ((df.true_label == "malicious") & (df.predicted_label == "benign")).sum()
 
-for row in false_positives:
-    print("URL:", row["url"])
-    print("Predicted level:", row["predicted_level"])
-    print("Score:", row["score"])
-    print("Reasons:", row["reasons"])
-    print("-" * 60)
+# -----------------------------
+# 1. Confusion Matrix Figure
+# -----------------------------
+
+cm = [[tp, fn],
+      [fp, tn]]
+
+accuracy = (tp + tn) / (tp + tn + fp + fn)
+fpr = fp / (fp + tn)
+fnr = fn / (fn + tp)
+
+plt.figure(figsize=(6,5))
+
+cm_labels = [
+    [f"TP\n{tp}", f"FN\n{fn}"],
+    [f"FP\n{fp}", f"TN\n{tn}"]
+]
+
+sns.heatmap(
+    cm,
+    annot=cm_labels,
+    fmt="",
+    cmap="Blues",
+    xticklabels=["Predicted Malicious", "Predicted Benign"],
+    yticklabels=["Actual Malicious", "Actual Benign"]
+)
+
+plt.title(
+    f"Quishield Security Analysis\n"
+    f"Accuracy={accuracy:.2f}  FPR={fpr:.2f}  FNR={fnr:.2f}"
+)
+
+plt.tight_layout()
+plt.savefig("../results/confusion_matrix.png")
+plt.close()
+
+# -----------------------------
+# 2. Error Breakdown Bar Chart
+# -----------------------------
+
+counts = {
+    "True Positive": tp,
+    "True Negative": tn,
+    "False Positive": fp,
+    "False Negative": fn
+}
+
+plt.figure(figsize=(7,5))
+plt.bar(counts.keys(), counts.values())
+plt.title("Security Analysis Classification Results")
+plt.ylabel("Count")
+plt.xticks(rotation=20)
+plt.tight_layout()
+plt.savefig("../results/classification_breakdown.png")
+plt.close()
+
+# -----------------------------
+# 3. Risk Level Distribution
+# -----------------------------
+
+risk_counts = df["predicted_level"].value_counts()
+
+plt.figure(figsize=(6,5))
+risk_counts.plot(kind="bar")
+plt.title("Distribution of Risk Levels Assigned by Quishield")
+plt.ylabel("Count")
+plt.xlabel("Risk Level")
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.savefig("../results/risk_distribution.png")
+plt.close()
+
+print("Figures saved to evaluation/results/")

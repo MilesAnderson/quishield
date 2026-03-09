@@ -25,4 +25,4 @@ yarn-error.log*
 
 evaluation/data/*
 !evaluation/data/sample_urls.csv
-evaluation/results/
+evaluation/results/*
