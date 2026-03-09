@@ -39,6 +39,9 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 
+//progress bar
+import android.widget.ProgressBar
+
 /**
  * Main Activity serves as the main entry point of the app.
  * Responsibilities:
@@ -50,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var uploadImgButton: Button
     private lateinit var resultText: TextView
     private lateinit var qrImageView: ImageView
+    private lateinit var loadingSpinner: ProgressBar
 
     // store if current object is bitmap or uri
     private var currentBitmap: Bitmap? = null
@@ -200,11 +204,12 @@ class MainActivity : AppCompatActivity() {
         uploadImgButton = findViewById(R.id.upload_img)
 
         // buttons
-        val uploadImgButton = findViewById<Button>(R.id.upload_img)
         val decodeBtn = findViewById<Button>(R.id.decodeBtn)
         val scanBtn = findViewById<Button>(R.id.scanBtn)
         val closeBtn = findViewById<Button>(R.id.closeBtn)
 
+        // progress spinner:
+        loadingSpinner = findViewById(R.id.loadingSpinner)
 
         // display current image object
         fun showCurrent() {
@@ -403,6 +408,7 @@ First converts uri through input stream, then decodes the stream in to the bitma
 
     // send decoded link to virus total
     private fun sendToVirusTotal(url: String) {
+        loadingSpinner.visibility = View.VISIBLE
         val trimmed = url.trim()
         if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
             resultText.text = "Blocked: only http/https links are supported.\n\n$trimmed"
@@ -424,11 +430,13 @@ First converts uri through input stream, then decodes the stream in to the bitma
                             "\n\nScanned URL:\n$trimmed"
 
                 withContext(Dispatchers.Main) {
+                    loadingSpinner.visibility = View.GONE
                     val dialog = ScanResultDialogFragment.newInstance(trimmed, summary)
                     dialog.show(supportFragmentManager, "ScanResult")
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    loadingSpinner.visibility = View.GONE
                     resultText.text = "VirusTotal error: ${e.message}"
                 }
             }
