@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Quishield</string>
     <string name="message">Hello Test</string>
+    <string name="qr_instruction">
+    <![CDATA[
+    <font color="#3b8dcb"><b>SCAN</b></font> a QR code or
+    <font color="#3b8dcb"><b>UPLOAD</b></font> from your device.<br/>
+    Tap <font color="#0f3054"><b>DECODE</b></font> to securely analyze it.
+    ]]>
+</string>
 </resources>

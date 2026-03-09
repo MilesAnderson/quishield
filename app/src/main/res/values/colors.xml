@@ -2,4 +2,23 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="blue1">#FF9fc5e8</color>
+    <color name="blue2">#FF6fa8dc</color>
+    <color name="blue3">#FF3d85c6</color>
+    <color name="blue4">#FF0b5394</color>
+    <color name="blue5">#FF073763</color>
+
+<!-- button ripples -->
+    <color name="ripple_blue_light">#335FA8E8</color>
+    <color name="ripple_blue_dark">#40000000</color>
+    <color name="ripple_blue5">#33FFFFFF</color>
+    <color name="ripple_gray">#33000000</color>
+
+<!-- backgrounds -->
+    <color name="dark_bg">#ff1b1b1b</color>
+    <color name="medium_gray_bg">#ff7a7a7a</color>
+    <color name="light_gray_bg">#ffededed</color>
+
+<!-- scan dimming-->
+    <color name="scanner_dimming">#61000000</color>
 </resources>
