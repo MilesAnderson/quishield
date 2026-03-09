@@ -59,6 +59,7 @@
                 android:orientation="vertical"
                 android:padding="14dp">
 
+                <!-- instructions -->
                 <TextView
                     android:id="@+id/qrInstructions"
                     android:layout_width="match_parent"

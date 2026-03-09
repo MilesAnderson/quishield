@@ -96,7 +96,7 @@ class MainActivity : AppCompatActivity() {
             val qrBox = findViewById<FrameLayout>(R.id.qrBox)
             qrBox.animate().translationZ(12f).setDuration(200).start()
 
-            resultText.text = "Image uploaded from camera roll"
+            resultText.text = "Image uploaded from camera roll."
             currentImageUri = it
             currentBitmap = null
         }
@@ -125,10 +125,6 @@ class MainActivity : AppCompatActivity() {
     private inner class QrAnalyzer : ImageAnalysis.Analyzer {
         private var qrDetected = false
         override fun analyze(image: ImageProxy) {
-            if (qrDetected) {
-                image.close()
-                return
-            }
             val buffer = image.planes[0].buffer
             val bytes = ByteArray(buffer.remaining())
             buffer.get(bytes)
@@ -145,6 +141,12 @@ class MainActivity : AppCompatActivity() {
                 )
             val binaryBitmap =
                 BinaryBitmap(HybridBinarizer(source))
+
+            if (qrDetected) {
+                image.close()
+                return
+            }
+
             try {
                 val result =
                     MultiFormatReader().decode(binaryBitmap)
@@ -166,7 +168,7 @@ class MainActivity : AppCompatActivity() {
                     if (url != null) {
                         sendToVirusTotal(url)
                     } else {
-                        resultText.text = "No valid URL found in QR"
+                        resultText.text = "No valid URL found in QR."
                     }
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(this@MainActivity)
                     cameraProviderFuture.addListener({
@@ -256,7 +258,7 @@ class MainActivity : AppCompatActivity() {
         val uploadBtn = findViewById<Button>(R.id.uploadBtn)
 
         // output
-        val resultText = findViewById<TextView>(R.id.resultText)
+        resultText = findViewById(R.id.resultText)
         resultText.text = HtmlCompat.fromHtml(
             getString(R.string.default_resulttext),
             HtmlCompat.FROM_HTML_MODE_LEGACY
@@ -426,7 +428,6 @@ First converts uri through input stream, then decodes the stream in to the bitma
         return regex.find(raw)?.value
     }
 
-
     // send decoded link to virus total
     private fun sendToVirusTotal(url: String) {
         loadingSpinner.visibility = View.VISIBLE
@@ -458,7 +459,9 @@ First converts uri through input stream, then decodes the stream in to the bitma
                     loadingSpinner.visibility = View.GONE
                     val dialog = ScanResultDialogFragment.newInstance(trimmed, level, score, reasons)
                     dialog.show(supportFragmentManager, "ScanResult")
-                    resultText.text = "Analysis complete ✓ Tap SCAN or UPLOAD to check another QR code."
+                    resultText.text = HtmlCompat.fromHtml(
+                        getString(R.string.completed_resulttext),
+                        HtmlCompat.FROM_HTML_MODE_LEGACY)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {

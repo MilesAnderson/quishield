@@ -17,6 +17,13 @@ import android.net.Uri
 /* this file contains the code that opens up a dialogue after a QR code is detected.
     A user can then decide to click the cancel button dismissing the dialogue, or click the visit link button taking them to the url in the QR.*/
 
+// this is to help the url display cleaner
+private fun breakUrl(url: String): String {
+    return url.replace("/", "/\u200B")
+        .replace("?", "?\u200B")
+        .replace("&", "&\u200B")
+        .replace("=", "=\u200B")
+}
 
 class ScanResultDialogFragment : DialogFragment() {
 
@@ -70,7 +77,7 @@ class ScanResultDialogFragment : DialogFragment() {
 
         val urlText =
             view.findViewById<TextView>(R.id.urlText)
-        urlText.text = url
+        urlText.text = breakUrl(url ?: "")
 
         val scoreText =
             view.findViewById<TextView>(R.id.scoreText)

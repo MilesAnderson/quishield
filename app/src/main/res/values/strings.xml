@@ -12,4 +12,8 @@
         <font color="#3b8dcb"><b>SCAN</b></font> or
         <font color="#3b8dcb"><b>UPLOAD</b></font> to begin.<br>Results will appear here.]]>
     </string>
+    <string name="completed_resulttext"><![CDATA[Analysis complete ✓<br>Tap
+        <font color="#3b8dcb"><b>SCAN</b></font> or
+        <font color="#3b8dcb"><b>UPLOAD</b></font> to check another QR code.]]>
+    </string>
 </resources>
