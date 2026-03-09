@@ -9,7 +9,7 @@
     <color name="blue5">#FF073763</color>
 
 <!-- button ripples -->
-    <color name="ripple_blue_light">#335FA8E8</color>
+    <color name="ripple_blue_light">#448DC1EB</color>
     <color name="ripple_blue_dark">#40000000</color>
     <color name="ripple_blue5">#33FFFFFF</color>
     <color name="ripple_gray">#33000000</color>

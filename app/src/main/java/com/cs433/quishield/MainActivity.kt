@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
@@ -239,8 +240,8 @@ class MainActivity : AppCompatActivity() {
         val mainContent = findViewById<ScrollView>(R.id.mainContent)
 
         // this is for making some words bold/colored in the instructions (HTML)
-        val qrLabel = findViewById<TextView>(R.id.qrLabel)
-        qrLabel.text = HtmlCompat.fromHtml(
+        val qrInstructions = findViewById<TextView>(R.id.qrInstructions)
+        qrInstructions.text = HtmlCompat.fromHtml(
             getString(R.string.qr_instruction),
             HtmlCompat.FROM_HTML_MODE_LEGACY
         )
@@ -255,7 +256,12 @@ class MainActivity : AppCompatActivity() {
         val uploadBtn = findViewById<Button>(R.id.uploadBtn)
 
         // output
-        resultText = findViewById(R.id.resultText)
+        val resultText = findViewById<TextView>(R.id.resultText)
+        resultText.text = HtmlCompat.fromHtml(
+            getString(R.string.default_resulttext),
+            HtmlCompat.FROM_HTML_MODE_LEGACY
+        )
+
         // progress spinner:
         loadingSpinner = findViewById(R.id.loadingSpinner)
 
@@ -272,17 +278,6 @@ class MainActivity : AppCompatActivity() {
         val dimRight = findViewById<View>(R.id.dimRight)
 
 
-//        // display current image object
-//        fun showCurrent() {
-//            qrImageView.setImageResource(samples[index])
-//            // switch from placeholder to real image
-//            qrImageView.visibility = View.VISIBLE
-//            qrPlaceholder.visibility = View.GONE
-//            resultText.text = "Showing sample ${index + 1} / ${samples.size}"
-//            currentBitmap = null
-//            currentImageUri = null
-//        }
-
         // upload button: launches photo gallery
         uploadBtn.setOnClickListener {
             pickImageLauncher.launch("image/*")
@@ -290,8 +285,6 @@ class MainActivity : AppCompatActivity() {
 
         //updated version of scan button using cameraX:
         scanBtn.setOnClickListener {
-//            findViewById<PreviewView>(R.id.previewView).visibility = View.VISIBLE
-//            closeBtn.visibility = View.VISIBLE
             if (hasCameraPermission()) {
                 mainContent.visibility = View.GONE
 
@@ -313,17 +306,6 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-
-        // close camera button
-//        closeBtn.setOnClickListener {
-//            findViewById<PreviewView>(R.id.previewView).visibility = View.GONE
-//            closeBtn.visibility = View.GONE
-//            val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-//            cameraProviderFuture.addListener({
-//                val cameraProvider = cameraProviderFuture.get()
-//                cameraProvider.unbindAll()
-//            }, ContextCompat.getMainExecutor(this))
-//        }
 
         // cancel scan
         exitScanBtn.setOnClickListener {
@@ -352,25 +334,24 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (decoded == null) {
-                resultText.text = "No QR code found"
+                resultText.text = "No QR code found."
             } else {
                 val url = extractUrl(decoded)
                 if (url != null) {
                     sendToVirusTotal(url)
                 } else {
-                    resultText.text = "No valid URL found"
+                    resultText.text = "No valid URL found."
                 }
             }
         }
 
-
-//        showCurrent()
 
 //        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
 //            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 //            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
 //            insets
 //        }
+        WindowCompat.setDecorFitsSystemWindows(window, true)
     }
 
     override fun onRequestPermissionsResult(
@@ -385,38 +366,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * sendToBackend
-     *
-     * Sends the decoded QR content to the backend server for security analysis.
-     * Performs a basic frontend safety check before making the network request.
-     */
-//    private fun sendToBackend(decodeText: String) {
-//        val trimmed = decodeText.trim()
-//        if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))){
-//            resultText.text = "Blocked (unsupported scheme): $trimmed"
-//            return
-//        }
-//
-//        resultText.text = "Checking safety..."
-//
-//        /**
-//         * Network rquests are performed on a background thread (IO dispatcher).
-//         * UI updates must occur on the main thread.
-//         */
-//        CoroutineScope(Dispatchers.IO).launch {
-//            try {
-//                val json = backend.scanUrl(trimmed)
-//                withContext(Dispatchers.Main){
-//                    resultText.text = "Backed result:\n$json"
-//                }
-//            } catch (e: Exception) {
-//                withContext(Dispatchers.Main) {
-//                    resultText.text = "Backend error: ${e.message}"
-//                }
-//            }
-//        }
-//    }
 
     /**
      * decodeQrFromDrawable
@@ -428,28 +377,6 @@ class MainActivity : AppCompatActivity() {
      * 3. Convert pixels into a luminance source
      * 4. Decode using ZXing's MultiFormatReader
      */
-//    private fun decodeQrFromUri(uri: Uri): String? {
-//        val bitmap: Bitmap = decodeUriToBitmap(uri) ?: return null
-//        val pixels = IntArray(bitmap.width * bitmap.height)
-//        bitmap.getPixels(
-//            pixels,
-//            0,
-//            bitmap.width,
-//            0,
-//            0,
-//            bitmap.width,
-//            bitmap.height
-//        )
-//
-//        val source = RGBLuminanceSource(bitmap.width, bitmap.height, pixels)
-//        val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
-//
-//        return try {
-//            MultiFormatReader().decode(binaryBitmap).text
-//        } catch (e: Exception) {
-//            null
-//        }
-//    }
 
     // turn uri to bitmap and then decode
     private fun decodeQrFromUri(uri: Uri): String? {
@@ -509,7 +436,7 @@ First converts uri through input stream, then decodes the stream in to the bitma
             return
         }
 
-        resultText.text = "Checking safety..."
+        resultText.text = "Securely analyzing QR code...\nThis may take a few seconds."
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -518,15 +445,20 @@ First converts uri through input stream, then decodes the stream in to the bitma
 
                 val assessment = RiskAssessment.assess(report, trimmed)
 
-                val summary =
-                    "${assessment.level}\n\n" +
-                            assessment.reasons.joinToString("\n") { "• $it" } +
-                            "\n\nScanned URL:\n$trimmed"
+                // separate into final assessment, score, and justification
+                val level = assessment.level
+                val score = assessment.score
+                val reasons = assessment.reasons.joinToString("\n") { "• $it." }
+
+//                val summary =
+//                    "${assessment.level}\n\n" +
+//                            assessment.reasons.joinToString("\n") { "• $it" } + "\n\nScanned URL:\n$trimmed"
 
                 withContext(Dispatchers.Main) {
                     loadingSpinner.visibility = View.GONE
-                    val dialog = ScanResultDialogFragment.newInstance(trimmed, summary)
+                    val dialog = ScanResultDialogFragment.newInstance(trimmed, level, score, reasons)
                     dialog.show(supportFragmentManager, "ScanResult")
+                    resultText.text = "Analysis complete ✓ Tap SCAN or UPLOAD to check another QR code."
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
