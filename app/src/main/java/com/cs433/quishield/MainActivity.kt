@@ -63,6 +63,19 @@ class MainActivity : AppCompatActivity() {
     // this is for the placeholder QR code before scan/upload
     lateinit var qrPlaceholder: TextView
 
+    // main screen
+    private lateinit var mainContent: ScrollView
+
+    // camera scan overlays
+    private lateinit var previewView: PreviewView
+    private lateinit var scanFrame: View
+    private lateinit var scanText: TextView
+    private lateinit var dimTop: View
+    private lateinit var dimBottom: View
+    private lateinit var dimLeft: View
+    private lateinit var dimRight: View
+    private lateinit var exitScanBtn: Button
+
     // store if current object is bitmap or uri
     private var currentBitmap: Bitmap? = null
     private var currentImageUri: Uri? = null
@@ -125,7 +138,7 @@ class MainActivity : AppCompatActivity() {
     private inner class QrAnalyzer : ImageAnalysis.Analyzer {
         private var qrDetected = false
         override fun analyze(image: ImageProxy) {
-            Log.d("QR_ANALYZER", "Frame received")
+//            Log.d("QR_ANALYZER", "Frame received")
             if (qrDetected) {
                 image.close()
                 return
@@ -134,6 +147,7 @@ class MainActivity : AppCompatActivity() {
             buffer.rewind()
             val bytes = ByteArray(buffer.remaining())
             buffer.get(bytes)
+
             val source =
                 com.google.zxing.PlanarYUVLuminanceSource(
                     bytes,
@@ -145,14 +159,34 @@ class MainActivity : AppCompatActivity() {
                     image.height,
                     false
                 )
+
             val binaryBitmap =
                 BinaryBitmap(HybridBinarizer(source))
+
             try {
                 val result = qrReader.decode(binaryBitmap)
+
                 qrDetected = true
-                val scannedBitmap = imageProxyToBitmap(image)
+                image.close()
+
+                cameraProvider?.unbindAll()
+//                val scannedBitmap = imageProxyToBitmap(image)
+
                 runOnUiThread {
-                    qrImageView.setImageBitmap(scannedBitmap)
+//                    qrImageView.setImageBitmap(scannedBitmap)
+
+                    mainContent.visibility = View.VISIBLE
+
+                    previewView.visibility = View.GONE
+                    scanFrame.visibility = View.GONE
+                    scanText.visibility = View.GONE
+                    exitScanBtn.visibility = View.GONE
+
+                    dimTop.visibility = View.GONE
+                    dimBottom.visibility = View.GONE
+                    dimLeft.visibility = View.GONE
+                    dimRight.visibility = View.GONE
+
                     qrImageView.visibility = View.VISIBLE
                     qrPlaceholder.visibility = View.GONE
 
@@ -160,7 +194,7 @@ class MainActivity : AppCompatActivity() {
 //                    qrBox.animate().translationZ(12f).setDuration(200).start()
 
                     resultText.text = "QR detected"
-                    findViewById<PreviewView>(R.id.previewView).visibility = View.GONE
+//                    findViewById<PreviewView>(R.id.previewView).visibility = View.GONE
 //                    findViewById<Button>(R.id.closeBtn).visibility = View.GONE
                     // convert text to url before sending to VT
                     val url = extractUrl(result.text)
@@ -169,32 +203,36 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         resultText.text = "No valid URL found in QR."
                     }
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(this@MainActivity)
-                    cameraProviderFuture.addListener({
-                        val cameraProvider = cameraProviderFuture.get()
-                        cameraProvider.unbindAll()
-                    }, ContextCompat.getMainExecutor(this@MainActivity))
+//                    val cameraProviderFuture = ProcessCameraProvider.getInstance(this@MainActivity)
+//                    cameraProviderFuture.addListener({
+//                        val cameraProvider = cameraProviderFuture.get()
+//                        cameraProvider.unbindAll()
+//                    }, ContextCompat.getMainExecutor(this@MainActivity))
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.d("QR_ANALYZER", "Decode failed")
+                image.close()
             }
-            image.close()
         }
     }
 
     //camera starter also adapted from google developers guide:
     private fun startCamera() {
-        val previewView =
-            findViewById<PreviewView>(R.id.previewView)
+//        val previewView =
+//            findViewById<PreviewView>(R.id.previewView)
         val cameraProviderFuture =
             ProcessCameraProvider.getInstance(this)
+
         cameraProviderFuture.addListener({
             cameraProvider =
                 cameraProviderFuture.get()
+
             val preview =
                 Preview.Builder().build()
             preview.setSurfaceProvider(
                 previewView.surfaceProvider
             )
+
             val imageAnalyzer =
                 ImageAnalysis.Builder()
                     .setBackpressureStrategy(
@@ -209,6 +247,7 @@ class MainActivity : AppCompatActivity() {
                     }
             val cameraSelector =
                 CameraSelector.DEFAULT_BACK_CAMERA
+
             cameraProvider?.unbindAll()
             cameraProvider?.bindToLifecycle(
                 this,
@@ -238,7 +277,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         // main UI overlay
-        val mainContent = findViewById<ScrollView>(R.id.mainContent)
+//        val mainContent = findViewById<ScrollView>(R.id.mainContent)
 
         // this is for making some words bold/colored in the instructions (HTML)
         val qrInstructions = findViewById<TextView>(R.id.qrInstructions)
@@ -266,17 +305,20 @@ class MainActivity : AppCompatActivity() {
         // progress spinner:
         loadingSpinner = findViewById(R.id.loadingSpinner)
 
+        // main screen
+        mainContent = findViewById(R.id.mainContent)
+
         // camera scan overlay
-        val previewView = findViewById<PreviewView>(R.id.previewView)
-        val scanFrame = findViewById<View>(R.id.scanFrame)
-        val scanText = findViewById<TextView>(R.id.scanText)
-        val exitScanBtn = findViewById<Button>(R.id.exitScanBtn)
+        previewView = findViewById(R.id.previewView)
+        scanFrame = findViewById(R.id.scanFrame)
+        scanText = findViewById(R.id.scanText)
+        exitScanBtn = findViewById(R.id.exitScanBtn)
 
         // needed four diff rectangles to go around the scanner for some reason
-        val dimTop = findViewById<View>(R.id.dimTop)
-        val dimBottom = findViewById<View>(R.id.dimBottom)
-        val dimLeft = findViewById<View>(R.id.dimLeft)
-        val dimRight = findViewById<View>(R.id.dimRight)
+        dimTop = findViewById(R.id.dimTop)
+        dimBottom = findViewById(R.id.dimBottom)
+        dimLeft = findViewById(R.id.dimLeft)
+        dimRight = findViewById(R.id.dimRight)
 
 
         // upload button: launches photo gallery
