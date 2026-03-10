@@ -10,6 +10,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 
 // widgets
 import android.widget.Button
@@ -79,6 +81,8 @@ class MainActivity : AppCompatActivity() {
     // store if current object is bitmap or uri
     private var currentBitmap: Bitmap? = null
     private var currentImageUri: Uri? = null
+
+    private var imageCapture: ImageCapture? = null
 
     /**
      * List of QR code images stored in res/drawable for testing
@@ -169,7 +173,9 @@ class MainActivity : AppCompatActivity() {
                 qrDetected = true
                 image.close()
 
-                cameraProvider?.unbindAll()
+                captureDetectedQr()
+
+//                cameraProvider?.unbindAll()
 //                val scannedBitmap = imageProxyToBitmap(image)
 
                 runOnUiThread {
@@ -227,11 +233,12 @@ class MainActivity : AppCompatActivity() {
             cameraProvider =
                 cameraProviderFuture.get()
 
-            val preview =
-                Preview.Builder().build()
+            val preview = Preview.Builder().build()
             preview.setSurfaceProvider(
                 previewView.surfaceProvider
             )
+
+            imageCapture = ImageCapture.Builder().build()
 
             val imageAnalyzer =
                 ImageAnalysis.Builder()
@@ -253,9 +260,42 @@ class MainActivity : AppCompatActivity() {
                 this,
                 cameraSelector,
                 preview,
+                imageCapture,
                 imageAnalyzer
             )
         }, ContextCompat.getMainExecutor(this))
+    }
+
+//    take picture of detected qr code during scan
+    private fun captureDetectedQr() {
+        val imageCapture = imageCapture ?: return
+
+        imageCapture.takePicture(
+            ContextCompat.getMainExecutor(this),
+            object: ImageCapture.OnImageCapturedCallback() {
+                override fun onCaptureSuccess(image: ImageProxy) {
+
+                    val buffer = image.planes[0].buffer
+                    buffer.rewind()
+                    val bytes = ByteArray(buffer.remaining())
+                    buffer.get(bytes)
+
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+                    runOnUiThread {
+                        qrImageView.setImageBitmap(bitmap)
+                        qrImageView.visibility = View.VISIBLE
+                    }
+
+                    image.close()
+                    cameraProvider?.unbindAll()
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    Log.e("QR_CAPTURE", "Image capture failed", exception)
+                }
+            }
+        )
     }
 
     // this converts scanned QR into clean image
@@ -340,6 +380,7 @@ class MainActivity : AppCompatActivity() {
                 dimBottom.visibility = View.VISIBLE
                 dimLeft.visibility = View.VISIBLE
                 dimRight.visibility = View.VISIBLE
+
 
                 startCamera()
             } else {
