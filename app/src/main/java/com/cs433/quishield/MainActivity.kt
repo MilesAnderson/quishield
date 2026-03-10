@@ -34,6 +34,9 @@ import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
+import com.google.zxing.DecodeHintType
+import com.google.zxing.BarcodeFormat
+
 
 // Kotlin coroutines (used for backend networking)
 import kotlinx.coroutines.CoroutineScope
@@ -101,7 +104,14 @@ class MainActivity : AppCompatActivity() {
     // virus total
     private val virusTotal = VirusTotalClient(BuildConfig.VT_API_KEY)
 
-    private val qrReader = MultiFormatReader()
+    private val qrReader = MultiFormatReader().apply {
+        val hints = mapOf(
+            DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),
+            DecodeHintType.TRY_HARDER to true
+        )
+        setHints(hints)
+    }
+
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -139,6 +149,7 @@ class MainActivity : AppCompatActivity() {
     https://developer.android.com/media/camera/camerax/analyze
     https://github.com/zxing/zxing*/
 
+    // scan
     private inner class QrAnalyzer : ImageAnalysis.Analyzer {
         private var qrDetected = false
         override fun analyze(image: ImageProxy) {
@@ -283,6 +294,9 @@ class MainActivity : AppCompatActivity() {
                     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
                     runOnUiThread {
+                        currentBitmap = bitmap
+                        currentImageUri = null
+
                         qrImageView.setImageBitmap(bitmap)
                         qrImageView.visibility = View.VISIBLE
                     }
