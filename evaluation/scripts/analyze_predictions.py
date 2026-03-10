@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import seaborn as sns
 
 # Load predictions
@@ -20,7 +21,17 @@ fn = ((df.true_label == "malicious") & (df.predicted_label == "benign")).sum()
 # -----------------------------
 # 1. Confusion Matrix Figure
 # -----------------------------
-
+y_true = df["true_label"]
+y_pred = df["predicted_label"]
+labels = sorted(df["true_label"].unique())
+cm = confusion_matrix(y_true, y_pred, labels=labels)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+disp.plot(cmap="Blues")
+plt.title("Confusion Matrix")
+plt.tight_layout()
+plt.savefig("../results/confusion_matrix.png")
+plt.close()
+'''
 cm = [[tp, fn],
       [fp, tn]]
 
@@ -52,6 +63,7 @@ plt.title(
 plt.tight_layout()
 plt.savefig("../results/confusion_matrix.png")
 plt.close()
+'''
 
 # -----------------------------
 # 2. Error Breakdown Bar Chart
