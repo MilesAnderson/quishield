@@ -116,17 +116,32 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            qrImageView.setImageURI(it)
+            val bitmap = decodeUriToBitmap(it)
+
+            if (bitmap != null) {
+                currentBitmap = bitmap
+                currentImageUri = null
+
+                qrImageView.setImageBitmap(bitmap)
+                resultText.text = "Image uploaded from camera roll.\nTap DECODE to begin security scan."
+
+            } else {
+                resultText.text = "Error processing image."
+            }
+
+//            qrImageView.setImageURI(it)
+
             // switch from placeholder to real image
             qrImageView.visibility = View.VISIBLE
             qrPlaceholder.visibility = View.GONE
 
-            val qrBox = findViewById<FrameLayout>(R.id.qrBox)
-            qrBox.animate().translationZ(12f).setDuration(200).start()
+//            val qrBox = findViewById<FrameLayout>(R.id.qrBox)
+//            qrBox.animate().translationZ(12f).setDuration(200).start()
 
-            resultText.text = "Image uploaded from camera roll."
-            currentImageUri = it
-            currentBitmap = null
+
+
+//            currentImageUri = it
+//            currentBitmap = null
         }
     }
 
@@ -427,7 +442,7 @@ class MainActivity : AppCompatActivity() {
         decodeBtn.setOnClickListener {
             val decoded = when {
                 currentBitmap != null -> decodeQrFromBitmap(currentBitmap!!)
-                currentImageUri != null -> decodeQrFromUri(currentImageUri!!)
+//                currentImageUri != null -> decodeQrFromUri(currentImageUri!!)
                 else -> null
             }
 
@@ -487,9 +502,14 @@ First converts uri through input stream, then decodes the stream in to the bitma
     private fun decodeUriToBitmap(uri: Uri): Bitmap? {
         return try {
             val inputStream = contentResolver.openInputStream(uri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
+
+            val options = BitmapFactory.Options()
+            options.inSampleSize = 2
+
+            val bitmap = BitmapFactory.decodeStream(inputStream, null, options)
             inputStream?.close()
             bitmap
+
         } catch (e: Exception) {
             e.printStackTrace()
             null
