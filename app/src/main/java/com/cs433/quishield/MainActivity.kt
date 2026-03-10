@@ -84,6 +84,7 @@ class MainActivity : AppCompatActivity() {
     // virus total
     private val virusTotal = VirusTotalClient(BuildConfig.VT_API_KEY)
 
+    private val qrReader = MultiFormatReader()
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -101,7 +102,6 @@ class MainActivity : AppCompatActivity() {
             currentBitmap = null
         }
     }
-
 
 
     // scan image
@@ -125,7 +125,13 @@ class MainActivity : AppCompatActivity() {
     private inner class QrAnalyzer : ImageAnalysis.Analyzer {
         private var qrDetected = false
         override fun analyze(image: ImageProxy) {
+            Log.d("QR_ANALYZER", "Frame received")
+            if (qrDetected) {
+                image.close()
+                return
+            }
             val buffer = image.planes[0].buffer
+            buffer.rewind()
             val bytes = ByteArray(buffer.remaining())
             buffer.get(bytes)
             val source =
@@ -141,15 +147,8 @@ class MainActivity : AppCompatActivity() {
                 )
             val binaryBitmap =
                 BinaryBitmap(HybridBinarizer(source))
-
-            if (qrDetected) {
-                image.close()
-                return
-            }
-
             try {
-                val result =
-                    MultiFormatReader().decode(binaryBitmap)
+                val result = qrReader.decode(binaryBitmap)
                 qrDetected = true
                 val scannedBitmap = imageProxyToBitmap(image)
                 runOnUiThread {
@@ -157,8 +156,8 @@ class MainActivity : AppCompatActivity() {
                     qrImageView.visibility = View.VISIBLE
                     qrPlaceholder.visibility = View.GONE
 
-                    val qrBox = findViewById<FrameLayout>(R.id.qrBox)
-                    qrBox.animate().translationZ(12f).setDuration(200).start()
+//                    val qrBox = findViewById<FrameLayout>(R.id.qrBox)
+//                    qrBox.animate().translationZ(12f).setDuration(200).start()
 
                     resultText.text = "QR detected"
                     findViewById<PreviewView>(R.id.previewView).visibility = View.GONE
