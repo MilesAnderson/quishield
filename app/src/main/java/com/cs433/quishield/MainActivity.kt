@@ -85,6 +85,9 @@ class MainActivity : AppCompatActivity() {
     private var currentBitmap: Bitmap? = null
     private var currentImageUri: Uri? = null
 
+    // store decoded QR text from the live scan (so DECODE doesn't need to re-run OCR on the bitmap)
+    private var lastScanRawText: String? = null
+
     private var imageCapture: ImageCapture? = null
 
     /**
@@ -100,6 +103,9 @@ class MainActivity : AppCompatActivity() {
 //    private val backend = BackendClient("http://10.0.2.2:3000")
 
     private var cameraProvider: ProcessCameraProvider? = null
+
+    // track whether we've already captured a frame during this scan session
+    private var qrDetected = false
 
     // virus total
     private val virusTotal = VirusTotalClient(BuildConfig.VT_API_KEY)
@@ -166,7 +172,6 @@ class MainActivity : AppCompatActivity() {
 
     // scan
     private inner class QrAnalyzer : ImageAnalysis.Analyzer {
-        private var qrDetected = false
         override fun analyze(image: ImageProxy) {
 //            Log.d("QR_ANALYZER", "Frame received")
             if (qrDetected) {
@@ -197,16 +202,13 @@ class MainActivity : AppCompatActivity() {
                 val result = qrReader.decode(binaryBitmap)
 
                 qrDetected = true
+                lastScanRawText = result.text
+
                 image.close()
 
                 captureDetectedQr()
 
-//                cameraProvider?.unbindAll()
-//                val scannedBitmap = imageProxyToBitmap(image)
-
                 runOnUiThread {
-//                    qrImageView.setImageBitmap(scannedBitmap)
-
                     mainContent.visibility = View.VISIBLE
 
                     previewView.visibility = View.GONE
@@ -222,27 +224,9 @@ class MainActivity : AppCompatActivity() {
                     qrImageView.visibility = View.VISIBLE
                     qrPlaceholder.visibility = View.GONE
 
-//                    val qrBox = findViewById<FrameLayout>(R.id.qrBox)
-//                    qrBox.animate().translationZ(12f).setDuration(200).start()
-
-                    resultText.text = "QR detected"
-//                    findViewById<PreviewView>(R.id.previewView).visibility = View.GONE
-//                    findViewById<Button>(R.id.closeBtn).visibility = View.GONE
-                    // convert text to url before sending to VT
-                    val url = extractUrl(result.text)
-                    if (url != null) {
-                        sendToVirusTotal(url)
-                    } else {
-                        resultText.text = "No valid URL found in QR."
-                    }
-//                    val cameraProviderFuture = ProcessCameraProvider.getInstance(this@MainActivity)
-//                    cameraProviderFuture.addListener({
-//                        val cameraProvider = cameraProviderFuture.get()
-//                        cameraProvider.unbindAll()
-//                    }, ContextCompat.getMainExecutor(this@MainActivity))
+                    resultText.text = "QR detected. Tap DECODE to analyze."
                 }
             } catch (e: Exception) {
-                Log.d("QR_ANALYZER", "Decode failed")
                 image.close()
             }
         }
@@ -301,12 +285,13 @@ class MainActivity : AppCompatActivity() {
             object: ImageCapture.OnImageCapturedCallback() {
                 override fun onCaptureSuccess(image: ImageProxy) {
 
-                    val buffer = image.planes[0].buffer
-                    buffer.rewind()
-                    val bytes = ByteArray(buffer.remaining())
-                    buffer.get(bytes)
+                    // val buffer = image.planes[0].buffer
+                    // buffer.rewind()
+                    // val bytes = ByteArray(buffer.remaining())
+                    // buffer.get(bytes)
 
-                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    // val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    val bitmap = imageProxyToBitmap(image)
 
                     runOnUiThread {
                         currentBitmap = bitmap
@@ -392,12 +377,15 @@ class MainActivity : AppCompatActivity() {
 
         // upload button: launches photo gallery
         uploadBtn.setOnClickListener {
+            lastScanRawText = null
             pickImageLauncher.launch("image/*")
         }
 
         //updated version of scan button using cameraX:
         scanBtn.setOnClickListener {
             if (hasCameraPermission()) {
+                lastScanRawText = null
+
                 mainContent.visibility = View.GONE
 
                 previewView.visibility = View.VISIBLE
@@ -410,6 +398,7 @@ class MainActivity : AppCompatActivity() {
                 dimLeft.visibility = View.VISIBLE
                 dimRight.visibility = View.VISIBLE
 
+                qrDetected = false
 
                 startCamera()
             } else {
@@ -441,6 +430,7 @@ class MainActivity : AppCompatActivity() {
         // updated version of decode that works for scan or upload & uses virustotal
         decodeBtn.setOnClickListener {
             val decoded = when {
+                lastScanRawText != null -> lastScanRawText
                 currentBitmap != null -> decodeQrFromBitmap(currentBitmap!!)
 //                currentImageUri != null -> decodeQrFromUri(currentImageUri!!)
                 else -> null
@@ -549,6 +539,7 @@ First converts uri through input stream, then decodes the stream in to the bitma
         loadingSpinner.visibility = View.VISIBLE
         val trimmed = url.trim()
         if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
+            loadingSpinner.visibility = View.GONE
             resultText.text = "Blocked: only http/https links are supported.\n\n$trimmed"
             return
         }
