@@ -119,6 +119,7 @@
                         android:text="SCAN"
                         android:textSize="18sp"
                         android:textStyle="bold"
+                        android:textColor="@color/white"
                         app:backgroundTint="@color/blue3"
                         app:cornerRadius="20dp"
                         app:rippleColor="@color/ripple_blue_light" />
@@ -133,6 +134,7 @@
                         android:text="UPLOAD"
                         android:textSize="18sp"
                         android:textStyle="bold"
+                        android:textColor="@color/white"
                         app:backgroundTint="@color/blue3"
                         app:cornerRadius="20dp"
                         app:rippleColor="@color/ripple_blue_light" />
@@ -149,6 +151,7 @@
                     android:elevation="14dp"
                     android:text="DECODE"
                     android:textSize="30sp"
+                    android:textColor="@color/white"
                     app:backgroundTint="@color/blue5"
                     app:cornerRadius="20dp"
                     app:rippleColor="@color/ripple_blue_dark" />
@@ -174,7 +177,8 @@
                     android:paddingTop="30dp"
                     android:gravity="center"
                     android:text="@string/default_resulttext"
-                    android:textSize="18sp" />
+                    android:textSize="18sp"
+                    android:textColor="@color/black"/>
 
                 <ProgressBar
                     android:id="@+id/loadingSpinner"
