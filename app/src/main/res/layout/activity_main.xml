@@ -120,6 +120,7 @@
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/white"
+                        android:fontFamily="@font/oxanium_semibold"
                         app:backgroundTint="@color/blue3"
                         app:cornerRadius="20dp"
                         app:rippleColor="@color/ripple_blue_light" />
@@ -135,6 +136,7 @@
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/white"
+                        android:fontFamily="@font/oxanium_semibold"
                         app:backgroundTint="@color/blue3"
                         app:cornerRadius="20dp"
                         app:rippleColor="@color/ripple_blue_light" />
@@ -150,6 +152,7 @@
                     android:layout_marginBottom="4dp"
                     android:elevation="14dp"
                     android:text="DECODE"
+                    android:fontFamily="@font/oxanium_bold"
                     android:textSize="30sp"
                     android:textColor="@color/white"
                     app:backgroundTint="@color/blue5"
