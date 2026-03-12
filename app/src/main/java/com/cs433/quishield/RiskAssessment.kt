@@ -110,7 +110,7 @@ object RiskAssessment {
 
         val level = when {
             score >= 55 -> "🚫 Dangerous"
-            score >= 20 -> "⚠️ Suspicious"
+            score >= 15 -> "⚠️ Suspicious"
             else -> "✅ Low Risk"
         }
 

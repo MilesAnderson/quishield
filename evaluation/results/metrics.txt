@@ -2,12 +2,12 @@ Total rows: 100
 Successful analyses: 99
 Failures: 1
 
-TP: 30
-TN: 49
-FP: 1
-FN: 19
+TP: 39
+TN: 39
+FP: 11
+FN: 10
 
-Accuracy: 0.798
-False Positive Rate: 0.020
-False Negative Rate: 0.388
+Accuracy: 0.788
+False Positive Rate: 0.220
+False Negative Rate: 0.204
 Failure Rate: 0.010

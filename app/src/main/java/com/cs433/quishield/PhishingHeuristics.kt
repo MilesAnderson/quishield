@@ -75,8 +75,13 @@ object PhishingHeuristics {
         val matchedPathWords = suspiciousPathWords.filter { word ->
             path.contains(word) || full.contains(word)
         }
-        if (matchedPathWords.size >= 2) {
-            score += 5
+        if (matchedPathWords.isNotEmpty()) {
+            score += 15
+            reasons.add("The link uses account or verification language")
+
+            if (matchedPathWords.size >= 2) {
+                score += 10
+            }
         }
 
         // 4) Brand mention checks
@@ -98,6 +103,26 @@ object PhishingHeuristics {
         if (url.contains("@")) {
             score += 20
             reasons.add("The link contains '@', which can hide the true destination")
+        }
+
+        val suspiciousTlds = listOf("xyz","top","ru","tk","gq","ml","cf")
+
+        val tld = host.substringAfterLast(".", "")
+
+        if (tld in suspiciousTlds) {
+            score += 15
+            reasons.add("The domain uses a high-risk top level domain")
+        }
+
+        val subdomainCount = host.split(".").size
+
+        if (subdomainCount >= 4) {
+            score += 10
+            reasons.add("The domain uses many subdomains")
+        }
+
+        if (url.length > 75) {
+            score += 10
         }
 
         return Result(

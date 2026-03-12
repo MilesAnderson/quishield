@@ -177,14 +177,9 @@ def phishing_heuristics(url: str):
         score += 15
         reasons.append("The link uses account or verification language")
         if len(set(matched_words)) >= 2:
-            score += 5
+            score += 10
 
-    # 4) @ trick
-    if "@" in url:
-        score += 20
-        reasons.append("The link contains '@', which can hide the true destination")
-
-    # 5) Very simple lookalike brand checks
+    # 4) Brand mention checks
     known_brands = [
         "paypal", "apple", "google", "microsoft", "amazon",
         "netflix", "instagram", "facebook", "bankofamerica",
@@ -211,6 +206,28 @@ def phishing_heuristics(url: str):
                 score += 25
                 reasons.append("The link references a known brand in a suspicious way")
                 break
+
+    # 5) '@' trick
+    if "@" in url:
+        score += 20
+        reasons.append("The link contains '@', which can hide the true destination")
+
+    # 6) High-risk TLDs
+    suspicious_tlds = {"xyz", "top", "ru", "tk", "gq", "ml", "cf"}
+    tld = host.rsplit(".", 1)[-1] if "." in host else host
+    if tld in suspicious_tlds:
+        score += 15
+        reasons.append("The domain uses a high-risk top level domain")
+
+    # 7) Many subdomains
+    subdomain_count = len(host.split("."))
+    if subdomain_count >= 4:
+        score += 10
+        reasons.append("The domain uses many subdomains")
+
+    # 8) Long URL
+    if len(url) > 75:
+        score += 10
 
     return min(score, 100), reasons
 
@@ -290,10 +307,8 @@ def assess_risk(report: dict, url: str):
     score += phish_score
     reasons.extend(phish_reasons)
 
-    # 8) Clamp
     score = max(0, min(score, 100))
 
-    # 9) Friendly explanations
     if not reasons:
         reasons.append("No security vendors flagged this URL")
 
@@ -305,10 +320,9 @@ def assess_risk(report: dict, url: str):
 
     reasons = list(dict.fromkeys(reasons))
 
-    # 10) Final verdict
     if score >= 55:
         level = "Dangerous"
-    elif score >= 20:
+    elif score >= 15:
         level = "Suspicious"
     else:
         level = "Low Risk"
