@@ -71,7 +71,7 @@
                     android:textColor="#333333"
                     android:textSize="20sp" />
 
-                <!-- QR box -->
+                <!-- QR display box -->
                 <FrameLayout
                     android:id="@+id/qrBox"
                     android:layout_width="280dp"
@@ -81,14 +81,7 @@
                     android:background="@drawable/placeholder_qr"
                     android:elevation="2dp">
 
-                    <ImageView
-                        android:id="@+id/qrImageView"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="QR code preview"
-                        android:scaleType="fitCenter"
-                        android:visibility="gone" />
-
+                    <!-- placeholder before image is scanned or uploaded -->
                     <TextView
                         android:id="@+id/qrPlaceholder"
                         android:layout_width="match_parent"
@@ -99,9 +92,18 @@
                         android:textSize="18sp"
                         android:padding="50dp"/>
 
+                    <!-- after uploading/capturing image -->
+                    <ImageView
+                        android:id="@+id/qrImageView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription="QR code preview"
+                        android:scaleType="fitCenter"
+                        android:visibility="gone" />
+
                 </FrameLayout>
 
-                <!-- scan/upload/decode -->
+                <!-- scan/upload/decode buttons -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -109,6 +111,7 @@
                     android:paddingHorizontal="30dp"
                     android:paddingVertical="10dp">
 
+                    <!-- scan -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/scanBtn"
                         android:layout_width="wrap_content"
@@ -125,6 +128,7 @@
                         app:cornerRadius="20dp"
                         app:rippleColor="@color/ripple_blue_light" />
 
+                    <!-- upload -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/uploadBtn"
                         android:layout_width="wrap_content"
@@ -143,6 +147,7 @@
 
                 </LinearLayout>
 
+                <!-- decode -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/decodeBtn"
                     android:layout_width="180dp"
@@ -161,7 +166,7 @@
 
             </LinearLayout>
 
-            <!-- outputs -->
+            <!-- footer (outputs) -->
             <FrameLayout
                 android:id="@+id/footer"
                 android:layout_width="match_parent"
@@ -201,102 +206,104 @@
     </ScrollView>
 
     <!--camera view adapted from google developers guide: https://developer.android.com/codelabs/camerax-getting-started#0 -->
-    <androidx.camera.view.PreviewView
-        android:id="@+id/previewView"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cameraView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:visibility="gone">
 
-    <!-- dimmed border of scan window -->
-    <View
-        android:id="@+id/dimTop"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/scanner_dimming"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/scanFrame"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-    <View
-        android:id="@+id/dimBottom"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/scanner_dimming"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/scanFrame"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-    <View
-        android:id="@+id/dimLeft"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/scanner_dimming"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="@id/scanFrame"
-        app:layout_constraintBottom_toBottomOf="@id/scanFrame"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/scanFrame"/>
-    <View
-        android:id="@+id/dimRight"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/scanner_dimming"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="@id/scanFrame"
-        app:layout_constraintBottom_toBottomOf="@id/scanFrame"
-        app:layout_constraintStart_toEndOf="@id/scanFrame"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <!-- camera preview -->
+        <androidx.camera.view.PreviewView
+            android:id="@+id/previewView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-    <View
-        android:id="@+id/scanFrame"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
-        android:background="@drawable/scan_frame"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <!-- dashed line border around scan area -->
+        <View
+            android:id="@+id/scanFrame"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:background="@drawable/scan_frame"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- instructions for scanning -->
-    <TextView
-        android:id="@+id/scanText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Align the QR code inside the box."
-        android:textColor="@android:color/white"
-        android:textSize="20sp"
-        android:visibility="gone"
-        android:background="@drawable/round_tinted_bg"
-        android:padding="8dp"
-        app:layout_constraintBottom_toTopOf="@id/scanFrame"
-        app:layout_constraintStart_toStartOf="@id/scanFrame"
-        app:layout_constraintEnd_toEndOf="@id/scanFrame"
-        android:layout_marginBottom="35dp"/>
+        <!-- dimmed border of scan window -->
+        <View
+            android:id="@+id/dimTop"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@color/scanner_dimming"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/scanFrame"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+        <View
+            android:id="@+id/dimBottom"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@color/scanner_dimming"
+            app:layout_constraintTop_toBottomOf="@id/scanFrame"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+        <View
+            android:id="@+id/dimLeft"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@color/scanner_dimming"
+            app:layout_constraintTop_toTopOf="@id/scanFrame"
+            app:layout_constraintBottom_toBottomOf="@id/scanFrame"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/scanFrame"/>
+        <View
+            android:id="@+id/dimRight"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@color/scanner_dimming"
+            app:layout_constraintTop_toTopOf="@id/scanFrame"
+            app:layout_constraintBottom_toBottomOf="@id/scanFrame"
+            app:layout_constraintStart_toEndOf="@id/scanFrame"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- cancel scan -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/exitScanBtn"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
-        android:text="Cancel Scan"
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:visibility="gone"
-        android:elevation="16dp"
-        app:backgroundTint="@color/blue3"
-        app:cornerRadius="8dp"
-        app:rippleColor="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/scanFrame"
-        app:layout_constraintStart_toStartOf="@id/scanFrame"
-        app:layout_constraintEnd_toEndOf="@id/scanFrame"
-        android:layout_marginTop="30dp"/>
+        <!-- instructions for scanning -->
+        <TextView
+            android:id="@+id/scanText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Align the QR code inside the box."
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:background="@drawable/round_tinted_bg"
+            android:padding="8dp"
+            app:layout_constraintBottom_toTopOf="@id/scanFrame"
+            app:layout_constraintStart_toStartOf="@id/scanFrame"
+            app:layout_constraintEnd_toEndOf="@id/scanFrame"
+            android:layout_marginBottom="35dp"/>
+
+        <!-- cancel scan button-->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/exitScanBtn"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:text="Cancel Scan"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:elevation="16dp"
+            app:backgroundTint="@color/blue3"
+            app:cornerRadius="8dp"
+            app:rippleColor="@color/white"
+            app:layout_constraintTop_toBottomOf="@id/scanFrame"
+            app:layout_constraintStart_toStartOf="@id/scanFrame"
+            app:layout_constraintEnd_toEndOf="@id/scanFrame"
+            android:layout_marginTop="30dp"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

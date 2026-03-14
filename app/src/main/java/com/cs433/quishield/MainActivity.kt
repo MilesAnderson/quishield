@@ -1,29 +1,28 @@
+// ------------------------ IMPORTS ----------------------------------
+// our kt files
 package com.cs433.quishield
-//Android lifecycle + UI imports
+
+// Android lifecycle + UI imports
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
+import androidx.lifecycle.lifecycleScope
+import android.net.Uri
+import android.view.View
+import android.util.Log
 
 // widgets
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.ScrollView
-import android.widget.FrameLayout
 import android.widget.ProgressBar
-
-import android.net.Uri
-import android.view.View
-import android.util.Log
+import androidx.constraintlayout.widget.ConstraintLayout
 
 // Bitmap handling (used to decode QR images)
 import android.graphics.Bitmap
@@ -37,9 +36,7 @@ import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.DecodeHintType
 import com.google.zxing.BarcodeFormat
 
-
 // Kotlin coroutines (used for backend networking)
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,65 +48,39 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+// ------------------------ IMPORTS ----------------------------------
 
 
-/**
- * Main Activity serves as the main entry point of the app.
- * Responsibilities:
- * 1. Decode QR codes using ZXing
- * 2. Send decoded URLs to the backend for security analysis
- * 3. Display the backend's response to the user
- */
 class MainActivity : AppCompatActivity() {
-    private lateinit var resultText: TextView
-    private lateinit var qrImageView: ImageView
-    private lateinit var loadingSpinner: ProgressBar
-
-    // this is for the placeholder QR code before scan/upload
-    lateinit var qrPlaceholder: TextView
-
+// ---------------------------VARS------------------------------------------
     // main screen
     private lateinit var mainContent: ScrollView
+    private lateinit var qrPlaceholder: TextView
+    private lateinit var qrImageView: ImageView
+    private lateinit var resultText: TextView
+    private lateinit var loadingSpinner: ProgressBar
 
-    // camera scan overlays
+    // camera view overlays
+    private lateinit var cameraView: ConstraintLayout
     private lateinit var previewView: PreviewView
-    private lateinit var scanFrame: View
-    private lateinit var scanText: TextView
-    private lateinit var dimTop: View
-    private lateinit var dimBottom: View
-    private lateinit var dimLeft: View
-    private lateinit var dimRight: View
-    private lateinit var exitScanBtn: Button
 
-    // store if current object is bitmap or uri
-    private var currentBitmap: Bitmap? = null
-    private var currentImageUri: Uri? = null
-
-    // store decoded QR text from the live scan (so DECODE doesn't need to re-run OCR on the bitmap)
-    private var lastScanRawText: String? = null
-
-    private var imageCapture: ImageCapture? = null
-
-    /**
-     * List of QR code images stored in res/drawable for testing
-     */
-//    private val samples = listOf(
-//        R.drawable.qr_example1,
-//        R.drawable.qr_example2,
-//        R.drawable.qr_example3
-//    )
-
-//    private var index = 0
-//    private val backend = BackendClient("http://10.0.2.2:3000")
-
+    // camera scan stuff
     private var cameraProvider: ProcessCameraProvider? = null
+    private var qrDetected = false // track whether we've already captured a frame during this scan session
+    private var imageCapture: ImageCapture? = null // store captured CameraX frame
 
-    // track whether we've already captured a frame during this scan session
-    private var qrDetected = false
+    // store current bitmap
+    private var currentBitmap: Bitmap? = null
 
-    // virus total
-    private val virusTotal = VirusTotalClient(BuildConfig.VT_API_KEY)
+    // store decoded QR text from the live scan (prevents re-decoding bitmap)
+    private var lastScanRawText: String? = null
+// --------------------------------VARS------------------------------------------
 
+
+// --------------------------------VALS------------------------------------------
+    // ZXing QR decoder (set to only look for QRs)
     private val qrReader = MultiFormatReader().apply {
         val hints = mapOf(
             DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),
@@ -118,6 +89,7 @@ class MainActivity : AppCompatActivity() {
         setHints(hints)
     }
 
+    // upload image stuff
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -126,7 +98,6 @@ class MainActivity : AppCompatActivity() {
 
             if (bitmap != null) {
                 currentBitmap = bitmap
-                currentImageUri = null
 
                 qrImageView.setImageBitmap(bitmap)
                 resultText.text = "Image uploaded from camera roll.\nTap DECODE to begin security scan."
@@ -135,45 +106,45 @@ class MainActivity : AppCompatActivity() {
                 resultText.text = "Error processing image."
             }
 
-//            qrImageView.setImageURI(it)
-
             // switch from placeholder to real image
             qrImageView.visibility = View.VISIBLE
             qrPlaceholder.visibility = View.GONE
-
-//            val qrBox = findViewById<FrameLayout>(R.id.qrBox)
-//            qrBox.animate().translationZ(12f).setDuration(200).start()
-
-
-
-//            currentImageUri = it
-//            currentBitmap = null
         }
     }
 
+    // virus total
+    private val virusTotal = VirusTotalClient(BuildConfig.VT_API_KEY)
+// ---------------------------VALS------------------------------------------
 
-    // scan image
-    /*
-    private val cameraLauncher = registerForActivityResult(
-        ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
-            qrImageView.setImageBitmap(it)
-            resultText.text = "Image captured from camera"
-            currentBitmap = it
-            currentImageUri = null
+
+// ------------------------CAMERA PERMS-----------------------------------
+// check if device has camera hardware/permissions
+private fun hasCameraPermission(): Boolean {
+    return checkSelfPermission(android.Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+}
+
+    // handle camera permission check
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100 && grantResults.isNotEmpty()
+            && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            startCamera()
         }
     }
-    */
+// ------------------------CAMERA PERMS-----------------------------------
 
-    /*image scanner adapted from google's official cameraX sample and ZXing library, see:
+
+// ---------------------------CAMERA FUNCTIONS------------------------------------------
+    /*image scanner - adapted from google's official cameraX sample and ZXing library, see:
     https://developer.android.com/media/camera/camerax/analyze
     https://github.com/zxing/zxing*/
-
-    // scan
     private inner class QrAnalyzer : ImageAnalysis.Analyzer {
         override fun analyze(image: ImageProxy) {
-//            Log.d("QR_ANALYZER", "Frame received")
             if (qrDetected) {
                 image.close()
                 return
@@ -210,16 +181,7 @@ class MainActivity : AppCompatActivity() {
 
                 runOnUiThread {
                     mainContent.visibility = View.VISIBLE
-
-                    previewView.visibility = View.GONE
-                    scanFrame.visibility = View.GONE
-                    scanText.visibility = View.GONE
-                    exitScanBtn.visibility = View.GONE
-
-                    dimTop.visibility = View.GONE
-                    dimBottom.visibility = View.GONE
-                    dimLeft.visibility = View.GONE
-                    dimRight.visibility = View.GONE
+                    cameraView.visibility = View.GONE
 
                     qrImageView.visibility = View.VISIBLE
                     qrPlaceholder.visibility = View.GONE
@@ -232,10 +194,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    //camera starter also adapted from google developers guide:
+    // camera starter also adapted from google developers guide:
     private fun startCamera() {
-//        val previewView =
-//            findViewById<PreviewView>(R.id.previewView)
         val cameraProviderFuture =
             ProcessCameraProvider.getInstance(this)
 
@@ -276,7 +236,7 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-//    take picture of detected qr code during scan
+    // take picture of detected qr code during scan
     private fun captureDetectedQr() {
         val imageCapture = imageCapture ?: return
 
@@ -285,17 +245,10 @@ class MainActivity : AppCompatActivity() {
             object: ImageCapture.OnImageCapturedCallback() {
                 override fun onCaptureSuccess(image: ImageProxy) {
 
-                    // val buffer = image.planes[0].buffer
-                    // buffer.rewind()
-                    // val bytes = ByteArray(buffer.remaining())
-                    // buffer.get(bytes)
-
-                    // val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                     val bitmap = imageProxyToBitmap(image)
 
                     runOnUiThread {
                         currentBitmap = bitmap
-                        currentImageUri = null
 
                         qrImageView.setImageBitmap(bitmap)
                         qrImageView.visibility = View.VISIBLE
@@ -312,7 +265,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    // this converts scanned QR into clean image
+    // convert cameraX YUV frame into bitmap
     private fun imageProxyToBitmap(image: ImageProxy): Bitmap {
         val buffer = image.planes[0].buffer
         val bytes = ByteArray(buffer.remaining())
@@ -320,181 +273,20 @@ class MainActivity : AppCompatActivity() {
 
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-
-        // splash screen
-        installSplashScreen()
-
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-
-        // main UI overlay
-//        val mainContent = findViewById<ScrollView>(R.id.mainContent)
-
-        // this is for making some words bold/colored in the instructions (HTML)
-        val qrInstructions = findViewById<TextView>(R.id.qrInstructions)
-        qrInstructions.text = HtmlCompat.fromHtml(
-            getString(R.string.qr_instruction),
-            HtmlCompat.FROM_HTML_MODE_LEGACY
-        )
-
-        // display
-        qrImageView = findViewById(R.id.qrImageView)
-        qrPlaceholder = findViewById(R.id.qrPlaceholder)
-
-        // buttons
-        val decodeBtn = findViewById<Button>(R.id.decodeBtn)
-        val scanBtn = findViewById<Button>(R.id.scanBtn)
-        val uploadBtn = findViewById<Button>(R.id.uploadBtn)
-
-        // output
-        resultText = findViewById(R.id.resultText)
-        resultText.text = HtmlCompat.fromHtml(
-            getString(R.string.default_resulttext),
-            HtmlCompat.FROM_HTML_MODE_LEGACY
-        )
-
-        // progress spinner:
-        loadingSpinner = findViewById(R.id.loadingSpinner)
-
-        // main screen
-        mainContent = findViewById(R.id.mainContent)
-
-        // camera scan overlay
-        previewView = findViewById(R.id.previewView)
-        scanFrame = findViewById(R.id.scanFrame)
-        scanText = findViewById(R.id.scanText)
-        exitScanBtn = findViewById(R.id.exitScanBtn)
-
-        // needed four diff rectangles to go around the scanner for some reason
-        dimTop = findViewById(R.id.dimTop)
-        dimBottom = findViewById(R.id.dimBottom)
-        dimLeft = findViewById(R.id.dimLeft)
-        dimRight = findViewById(R.id.dimRight)
+// ---------------------------CAMERA FUNCTIONS-------------------------------------------
 
 
-        // upload button: launches photo gallery
-        uploadBtn.setOnClickListener {
-            lastScanRawText = null
-            pickImageLauncher.launch("image/*")
-        }
-
-        //updated version of scan button using cameraX:
-        scanBtn.setOnClickListener {
-            if (hasCameraPermission()) {
-                lastScanRawText = null
-
-                mainContent.visibility = View.GONE
-
-                previewView.visibility = View.VISIBLE
-                scanFrame.visibility = View.VISIBLE
-                scanText.visibility = View.VISIBLE
-                exitScanBtn.visibility = View.VISIBLE
-
-                dimTop.visibility = View.VISIBLE
-                dimBottom.visibility = View.VISIBLE
-                dimLeft.visibility = View.VISIBLE
-                dimRight.visibility = View.VISIBLE
-
-                qrDetected = false
-
-                startCamera()
-            } else {
-                requestPermissions(
-                    arrayOf(android.Manifest.permission.CAMERA),
-                    100
-                )
-            }
-        }
-
-        // cancel scan
-        exitScanBtn.setOnClickListener {
-
-            previewView.visibility = View.GONE
-            scanFrame.visibility = View.GONE
-            scanText.visibility = View.GONE
-            exitScanBtn.visibility = View.GONE
-
-            dimTop.visibility = View.GONE
-            dimBottom.visibility = View.GONE
-            dimLeft.visibility = View.GONE
-            dimRight.visibility = View.GONE
-
-            mainContent.visibility = View.VISIBLE
-
-            cameraProvider?.unbindAll()
-        }
-
-        // updated version of decode that works for scan or upload & uses virustotal
-        decodeBtn.setOnClickListener {
-            val decoded = when {
-                lastScanRawText != null -> lastScanRawText
-                currentBitmap != null -> decodeQrFromBitmap(currentBitmap!!)
-//                currentImageUri != null -> decodeQrFromUri(currentImageUri!!)
-                else -> null
-            }
-
-            if (decoded == null) {
-                resultText.text = "No QR code found."
-            } else {
-                val url = extractUrl(decoded)
-                if (url != null) {
-                    sendToVirusTotal(url)
-                } else {
-                    resultText.text = "No valid URL found."
-                }
-            }
-        }
-
-
-//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-//            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-//            insets
-//        }
-        WindowCompat.setDecorFitsSystemWindows(window, true)
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 100 && grantResults.isNotEmpty()
-            && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            startCamera()
-        }
-    }
-
-
-    /**
-     * decodeQrFromDrawable
-     *
-     * Uses the AXing library to decode a QR code from a drawable resource.
-     * Steps:
-     * 1. Concert drawable into a Bitmap
-     * 2. Extract raw pixel data
-     * 3. Convert pixels into a luminance source
-     * 4. Decode using ZXing's MultiFormatReader
-     */
-
-    // turn uri to bitmap and then decode
-    private fun decodeQrFromUri(uri: Uri): String? {
-        val bitmap = decodeUriToBitmap(uri) ?: return null
-        return decodeQrFromBitmap(bitmap)
-    }
-
-/*  below function converts image uri to bitmap
+// ---------------------------DECODE/EVAL FUNCTIONS------------------------------------------
+    /*  below function converts image uri to bitmap (handles uploaded images)
 First converts uri through input stream, then decodes the stream in to the bitmap. Content resolver method used from android developers guide*/
     private fun decodeUriToBitmap(uri: Uri): Bitmap? {
         return try {
             val inputStream = contentResolver.openInputStream(uri)
 
-            val options = BitmapFactory.Options()
-            options.inSampleSize = 2
+            val options = BitmapFactory.Options().apply {
+                inSampleSize = 2
+                inPreferredConfig = Bitmap.Config.RGB_565
+            }
 
             val bitmap = BitmapFactory.decodeStream(inputStream, null, options)
             inputStream?.close()
@@ -506,7 +298,7 @@ First converts uri through input stream, then decodes the stream in to the bitma
         }
     }
 
-    // decode bitmap
+    // decode bitmap w/ multiformatreader (set for QR codes)
     private fun decodeQrFromBitmap(bitmap: Bitmap): String? {
         val pixels = IntArray(bitmap.width * bitmap.height)
         bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
@@ -521,13 +313,6 @@ First converts uri through input stream, then decodes the stream in to the bitma
         }
     }
 
-    // check if device has camera hardware
-    private fun hasCameraPermission(): Boolean {
-        return checkSelfPermission(android.Manifest.permission.CAMERA) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
-
-
     // convert QR text into URL
     private fun extractUrl(raw: String): String? {
         val regex = Regex("""https?://[^\s]+""")
@@ -535,7 +320,7 @@ First converts uri through input stream, then decodes the stream in to the bitma
     }
 
     // send decoded link to virus total
-    private fun sendToVirusTotal(url: String) {
+    private fun evaluateRisk(url: String) {
         loadingSpinner.visibility = View.VISIBLE
         val trimmed = url.trim()
         if (!(trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
@@ -546,7 +331,7 @@ First converts uri through input stream, then decodes the stream in to the bitma
 
         resultText.text = "Securely analyzing QR code...\nThis may take a few seconds."
 
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val report = virusTotal.scanUrlReport(trimmed)
                 Log.d("VT_DEBUG", virusTotal.formatReportForDebug(report))
@@ -557,10 +342,6 @@ First converts uri through input stream, then decodes the stream in to the bitma
                 val level = assessment.level
                 val score = assessment.score
                 val reasons = assessment.reasons.joinToString("\n") { "• $it." }
-
-//                val summary =
-//                    "${assessment.level}\n\n" +
-//                            assessment.reasons.joinToString("\n") { "• $it" } + "\n\nScanned URL:\n$trimmed"
 
                 withContext(Dispatchers.Main) {
                     loadingSpinner.visibility = View.GONE
@@ -578,4 +359,118 @@ First converts uri through input stream, then decodes the stream in to the bitma
             }
         }
     }
+// ---------------------------DECODE/EVAL FUNCTIONS------------------------------------------
+
+
+// ---------------------------OVERRIDE FUNCTIONS------------------------------------------
+    // on create display stuff
+    override fun onCreate(savedInstanceState: Bundle?) {
+
+        // splash screen
+        installSplashScreen()
+
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_main)
+
+        // this is for making some words bold/colored in the instructions (HTML)
+        val qrInstructions = findViewById<TextView>(R.id.qrInstructions)
+        qrInstructions.text = HtmlCompat.fromHtml(
+            getString(R.string.qr_instruction),
+            HtmlCompat.FROM_HTML_MODE_LEGACY
+        )
+        //-------------------------VARS--------------------------------------
+        // -----------------main screen----------------------
+        mainContent = findViewById(R.id.mainContent)
+
+        // display
+        qrImageView = findViewById(R.id.qrImageView)
+        qrPlaceholder = findViewById(R.id.qrPlaceholder)
+
+        // buttons
+        val decodeBtn = findViewById<Button>(R.id.decodeBtn)
+        val scanBtn = findViewById<Button>(R.id.scanBtn)
+        val exitScanBtn = findViewById<Button>(R.id.exitScanBtn)
+        val uploadBtn = findViewById<Button>(R.id.uploadBtn)
+
+        // footer/outputs
+        resultText = findViewById(R.id.resultText)
+        resultText.text = HtmlCompat.fromHtml(
+            getString(R.string.default_resulttext),
+            HtmlCompat.FROM_HTML_MODE_LEGACY
+        )
+
+        // progress spinner
+        loadingSpinner = findViewById(R.id.loadingSpinner)
+        // -----------------main screen----------------------
+
+        // -----------------scan screen----------------------
+        // camera scan overlay
+        cameraView = findViewById(R.id.cameraView)
+        previewView = findViewById(R.id.previewView)
+        // -----------------scan screen----------------------
+        //-------------------------VARS--------------------------------------
+
+
+        // ------------------------BUTTONS-------------------------------------
+        // scan button: lets user capture picture using cameraX
+        scanBtn.setOnClickListener {
+            if (hasCameraPermission()) {
+                lastScanRawText = null
+                qrDetected = false
+
+                mainContent.visibility = View.GONE
+                cameraView.visibility = View.VISIBLE
+
+                startCamera()
+            } else {
+                // get camera perms
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.CAMERA),
+                    100
+                )
+            }
+        }
+
+        // cancel scan (return to main view)
+        exitScanBtn.setOnClickListener {
+            cameraView.visibility = View.GONE
+            mainContent.visibility = View.VISIBLE
+
+            cameraProvider?.unbindAll()
+        }
+
+        // upload button: launches photo gallery
+        uploadBtn.setOnClickListener {
+            lastScanRawText = null
+            pickImageLauncher.launch("image/*")
+        }
+
+        // decode button: calls decode functions on bitmap or loads scanned url, then sends to risk evaluator
+        decodeBtn.setOnClickListener {
+            val decoded = lastScanRawText ?: currentBitmap?.let { decodeQrFromBitmap(it) }
+
+            if (decoded == null) {
+                resultText.text = "No QR code found."
+            } else {
+                val url = extractUrl(decoded)
+                if (url != null) {
+                    evaluateRisk(url)
+                } else {
+                    resultText.text = "No valid URL found."
+                }
+            }
+        }
+        // ------------------------BUTTONS-------------------------------------
+
+        // fits display to screen size
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+    }
+
+    // on destroy crash handling
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraProvider?.unbindAll()
+    }
+// ---------------------------OVERRIDE FUNCTIONS------------------------------------------
 }
